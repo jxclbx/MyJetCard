@@ -1,6 +1,7 @@
 # MyJetCard
 
 基于 Django 的自托管航空摄影作品集。每位用户拥有独立的照片库，包含足迹地图、数据统计和照片审核流程。
+[欢迎来看看](https://myjetcard.top/jxclbx/)https://myjetcard.top/jxclbx/
 
 ---
 
