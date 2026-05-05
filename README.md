@@ -204,6 +204,42 @@ python manage.py delete_entry pending 42 43
 
 ---
 
+## 从零部署
+
+**环境要求：** Python 3.10+
+
+```bash
+# 1. 克隆仓库
+git clone https://github.com/jxclbx/MyJetCard.git
+cd MyJetCard
+
+# 2. 安装依赖
+pip install django pillow
+
+# 3. 配置 settings.py
+#    将 planehub/settings.py 中的占位符替换为实际值：
+#    SECRET_KEY = '你自己生成的密钥'
+#    ALLOWED_HOSTS = ['你的域名或IP', '127.0.0.1', 'localhost']
+
+# 4. 初始化数据库
+python manage.py migrate
+
+# 5. 创建管理员账号
+python manage.py createsuperuser
+
+# 6. 收集静态文件（生产环境）
+python manage.py collectstatic
+
+# 7. 启动开发服务器
+python manage.py runserver
+```
+
+登录后访问 `/manage/site/` 完成站点配置（头像、横幅、装备等），之后即可通过 `/manage/photos/add/` 开始上传照片。
+
+**生产环境建议：** 使用 Gunicorn + Nginx，由 Nginx 直接 serve `media/` 和 `staticfiles/` 目录，并开启 gzip 压缩静态资源。
+
+---
+
 ## 技术栈
 
 | 层级 | 选型 |
