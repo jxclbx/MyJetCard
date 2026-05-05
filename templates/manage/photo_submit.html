@@ -1,0 +1,896 @@
+{% load static %}
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Submit Photo - MyJetCard</title>
+  <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
+  <link rel="stylesheet" href="{% static 'base.css' %}">
+  <style>
+    .wrap {
+      max-width: 760px;
+    }
+
+    h2 {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      margin: 0 0 16px;
+    }
+
+    label {
+      display: block;
+      margin-top: 14px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    .wrap {
+      max-width: 900px;
+      margin: 32px auto;
+      padding: 0 16px;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      padding: 20px;
+      text-align: left;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      color: #0054a6;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      text-decoration: underline;
+    }
+
+    h2 {
+      margin: 6px 0 12px;
+    }
+
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: 700;
+    }
+
+    /* Fix text input styles but avoid breaking checkboxes and file uploads */
+    input:not([type="checkbox"]):not([type="file"]):not([type="hidden"]),
+    textarea,
+    select {
+      width: 100%;
+      max-width: 520px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+
+    /* Better spacing for file inputs */
+    input[type="file"] {
+      margin-top: 8px;
+    }
+
+    /* Make checkboxes inline and natural size */
+    input[type="checkbox"] {
+      width: auto;
+      margin-left: 12px;
+      margin-right: 4px;
+      cursor: pointer;
+      vertical-align: middle;
+    }
+
+    /* Undo block layout for the labels specifically following checkboxes 'Clear' */
+    input[type="checkbox"]+label {
+      display: inline-block;
+      margin-top: 0;
+      font-weight: 500;
+      color: #dc3545;
+      /* Soft red for danger action */
+      cursor: pointer;
+      vertical-align: middle;
+    }
+
+    .errors {
+      color: #b00000;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .actions-bottom {
+      margin-top: 18px;
+      padding-top: 12px;
+      border-top: 1px solid #eee;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .exif-hint {
+      font-size: 12px;
+      margin-top: 4px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      display: none;
+      max-width: 520px;
+      box-sizing: border-box;
+    }
+
+    .tags-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 18px;
+      margin-top: 10px;
+      padding: 10px 0;
+      max-width: 520px;
+    }
+
+    .tags-row .tag-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .tags-row .tag-item label {
+      display: inline;
+      margin: 0;
+      font-size: 12px;
+      font-weight: 600;
+      color: #444;
+      text-transform: none;
+      cursor: pointer;
+    }
+
+    .tags-row .tag-item input[type="checkbox"] {
+      margin: 0;
+      width: auto;
+    }
+
+    .exif-hint.success {
+      color: #155724;
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      display: block;
+    }
+
+    .reg-hint {
+      color: #004085;
+      background: #cce5ff;
+      border: 1px solid #b8daff;
+      display: none;
+      font-size: 12px;
+      margin-top: 4px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      max-width: 520px;
+      box-sizing: border-box;
+    }
+
+    .reg-hint.active {
+      display: block;
+    }
+
+    .exif-hint.warn {
+      color: #856404;
+      background: #fff3cd;
+      border: 1px solid #ffeeba;
+      display: block;
+    }
+
+    .drop-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 84, 166, 0.12);
+      border: 3px dashed #0054a6;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .drop-overlay.active {
+      opacity: 1;
+    }
+
+    .drop-overlay span {
+      background: #fff;
+      padding: 16px 32px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #0054a6;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Drop overlay for drag-and-drop visual feedback -->
+  <div class="drop-overlay" id="drop-overlay"><span>release to upload</span></div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="topbar">
+        <a class="btn" href="/{{ user.username }}/">Home</a>
+      </div>
+
+      <h2>Submit Photo (Pending Review)</h2>
+
+      {% if messages %}
+      {% for message in messages %}
+      <div
+        style="padding: 10px; margin-bottom: 12px; border-radius: 6px; 
+                      {% if message.tags == 'success' %}background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;{% else %}background-color: #e2e3e5; color: #383d41;{% endif %}">
+        {{ message }}
+      </div>
+      {% endfor %}
+      {% endif %}
+
+      <form method="post" enctype="multipart/form-data" id="photo-form">
+        {% csrf_token %}
+        <div class="errors">{{ form.non_field_errors }}</div>
+
+        <div style="margin-bottom: 12px;">
+          <img id="img-preview" src="" alt="Preview"
+            style="display:none; height:160px; border:1px solid #eee; border-radius:8px; margin-top:8px; object-fit:contain;">
+        </div>
+
+        <label>Image</label>{{ form.image }}<div class="errors">{{ form.image.errors }}</div>
+        <label>Reg</label>{{ form.reg }}<div class="errors">{{ form.reg.errors }}</div>
+        <div class="reg-hint" id="reg-db-hint"></div>
+        <label>Model</label>{{ form.model }}<div class="errors">{{ form.model.errors }}</div>
+        <label>Sub Model</label>{{ form.sub_model }}<div class="errors">{{ form.sub_model.errors }}</div>
+        <label>Airline</label>{{ form.airline }}<div class="errors">{{ form.airline.errors }}</div>
+        <label>Airport</label>{{ form.airport }}<div class="errors">{{ form.airport.errors }}</div>
+        <label>Date</label>{{ form.date }}<div class="errors">{{ form.date.errors }}</div>
+        <div class="exif-hint" id="exif-date-hint"></div>
+        <label>Camera</label>{{ form.camera }}<div class="errors">{{ form.camera.errors }}</div>
+        <label>Lens</label>{{ form.lens }}<div class="errors">{{ form.lens.errors }}</div>
+        <label>Remarks</label>{{ form.remarks }}<div class="errors">{{ form.remarks.errors }}</div>
+
+        <label style="margin-bottom:0;">Tags</label>
+        <div class="tags-row">
+          <span class="tag-item">{{ form.featured }}<label for="id_featured">Featured</label></span>
+          <span class="tag-item">{{ form.is_special_livery }}<label for="id_is_special_livery">Special
+              Livery</label></span>
+          <span class="tag-item">{{ form.is_cargo }}<label for="id_is_cargo">Cargo</label></span>
+          <span class="tag-item">{{ form.is_bizjet }}<label for="id_is_bizjet">Business Jet</label></span>
+          <span class="tag-item">{{ form.is_helicopter }}<label for="id_is_helicopter">Helicopter</label></span>
+          <span class="tag-item">{{ form.is_rare }}<label for="id_is_rare">Rare</label></span>
+        </div>
+
+        <div class="actions-bottom">
+          <button class="btn" id="btn-submit" type="submit" style="color:#000; text-decoration:none;">Submit</button>
+        </div>
+      </form>
+      <script>
+        document.getElementById('photo-form').addEventListener('submit', function () {
+          var btn = document.getElementById('btn-submit');
+          btn.disabled = true;
+          btn.textContent = 'Submitting...';
+          btn.style.opacity = '0.6';
+        });
+      </script>
+    </div>
+  </div>
+
+  <script src="{% static 'airport-data.js' %}?v=1.0"></script>
+  {{ models|json_script:"model-list-data" }}
+  {{ model_submodel_map|json_script:"model-submodel-map" }}
+  <script>
+    (function () {
+      const regInput = document.getElementById('id_reg');
+      const regHint = document.getElementById('reg-db-hint');
+      const username = "{{ user.username }}";
+
+      if (regInput && regHint) {
+        let debounceTimer;
+        regInput.addEventListener('input', function () {
+          clearTimeout(debounceTimer);
+          const reg = this.value.trim();
+          if (!reg) {
+            regHint.classList.remove('active');
+            return;
+          }
+
+          debounceTimer = setTimeout(() => {
+            fetch(`/api/${encodeURIComponent(username)}/photos?reg=${encodeURIComponent(reg)}&page_size=1`)
+              .then(res => res.json())
+              .then(data => {
+                if (data && typeof data.count === 'number') {
+                  regHint.innerHTML = `This registration has been uploaded <strong>${data.count}</strong> times.`;
+                  regHint.classList.add('active');
+                } else {
+                  regHint.classList.remove('active');
+                }
+              })
+              .catch(err => console.error(err));
+          }, 600);
+        });
+      }
+    })();
+  </script>
+  <script>
+    // ── Minimal EXIF date parser (no external dependency) ──
+    // Reads DateTimeOriginal / DateTimeDigitized / DateTime from JPEG EXIF
+    function readExifDate(file) {
+      return new Promise((resolve) => {
+        if (!file || !file.type.match(/image\/(jpeg|jpg|tiff)/i)) {
+          resolve(null);
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          try {
+            const view = new DataView(e.target.result);
+            // Check JPEG SOI marker
+            if (view.getUint16(0) !== 0xFFD8) { resolve(null); return; }
+            let offset = 2;
+            while (offset < view.byteLength - 1) {
+              const marker = view.getUint16(offset);
+              offset += 2;
+              if (marker === 0xFFE1) { // APP1 (EXIF)
+                const length = view.getUint16(offset);
+                // Check "Exif\0\0"
+                const exifHeader = String.fromCharCode(
+                  view.getUint8(offset + 2), view.getUint8(offset + 3),
+                  view.getUint8(offset + 4), view.getUint8(offset + 5)
+                );
+                if (exifHeader !== 'Exif') { resolve(null); return; }
+                const tiffStart = offset + 8; // after length(2) + "Exif\0\0"(6)
+                const bigEndian = view.getUint16(tiffStart) === 0x4D4D;
+                const g16 = (o) => view.getUint16(o, !bigEndian);
+                const g32 = (o) => view.getUint32(o, !bigEndian);
+
+                function readString(off, len) {
+                  let s = '';
+                  for (let i = 0; i < len && view.getUint8(off + i) !== 0; i++) {
+                    s += String.fromCharCode(view.getUint8(off + i));
+                  }
+                  return s;
+                }
+
+                function findTag(ifdOffset, tagId) {
+                  const entries = g16(ifdOffset);
+                  for (let i = 0; i < entries; i++) {
+                    const entryOffset = ifdOffset + 2 + i * 12;
+                    if (g16(entryOffset) === tagId) {
+                      const count = g32(entryOffset + 4);
+                      const valueOffset = count > 4 ? tiffStart + g32(entryOffset + 8) : entryOffset + 8;
+                      return readString(valueOffset, count);
+                    }
+                  }
+                  return null;
+                }
+
+                function findExifIFDOffset(ifdOffset) {
+                  const entries = g16(ifdOffset);
+                  for (let i = 0; i < entries; i++) {
+                    const entryOffset = ifdOffset + 2 + i * 12;
+                    if (g16(entryOffset) === 0x8769) { // ExifIFD pointer
+                      return tiffStart + g32(entryOffset + 8);
+                    }
+                  }
+                  return null;
+                }
+
+                const ifd0 = tiffStart + g32(tiffStart + 4);
+                const exifIFD = findExifIFDOffset(ifd0);
+
+                let dateStr = null;
+                if (exifIFD) {
+                  // 0x9003 = DateTimeOriginal, 0x9004 = DateTimeDigitized
+                  dateStr = findTag(exifIFD, 0x9003) || findTag(exifIFD, 0x9004);
+                }
+                if (!dateStr) {
+                  // 0x0132 = DateTime (from IFD0)
+                  dateStr = findTag(ifd0, 0x0132);
+                }
+
+                if (dateStr) {
+                  // EXIF date format: "YYYY:MM:DD HH:MM:SS" -> "YYYY-MM-DD"
+                  const match = dateStr.match(/(\d{4}):(\d{2}):(\d{2})/);
+                  if (match) {
+                    resolve(`${match[1]}-${match[2]}-${match[3]}`);
+                    return;
+                  }
+                }
+                resolve(null);
+                return;
+              } else if ((marker & 0xFF00) === 0xFF00) {
+                const segLen = view.getUint16(offset);
+                offset += segLen;
+              } else {
+                break;
+              }
+            }
+            resolve(null);
+          } catch (err) {
+            resolve(null);
+          }
+        };
+        // Only read the first 128KB for speed (EXIF is always in the header)
+        reader.readAsArrayBuffer(file.slice(0, 131072));
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      // Auto uppercase for reg input
+      const regInput = document.querySelector('input[name="reg"]');
+      if (regInput) {
+        regInput.addEventListener('input', function () {
+          this.value = this.value.toUpperCase();
+        });
+      }
+
+      const fileInputs = document.querySelectorAll('input[type="file"]');
+      const previewImg = document.getElementById('img-preview');
+      const dateInput = document.querySelector('input[name="date"]');
+      const exifHint = document.getElementById('exif-date-hint');
+
+      // ── EXIF date extraction helper ──
+      async function handleImageFile(file) {
+        if (!file) return;
+        // Preview
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          previewImg.src = e.target.result;
+          previewImg.style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+
+        // EXIF date
+        if (dateInput) {
+          const exifDate = await readExifDate(file);
+          if (exifDate) {
+            dateInput.value = exifDate;
+            if (exifHint) {
+              exifHint.textContent = 'EXIF date read:' + exifDate;
+              exifHint.className = 'exif-hint success';
+            }
+          } else {
+            if (exifHint) {
+              exifHint.textContent = 'EXIF date read failed';
+              exifHint.className = 'exif-hint warn';
+            }
+          }
+        }
+      }
+
+      // File input change handler
+      fileInputs.forEach(input => {
+        input.addEventListener('change', function () {
+          if (this.files && this.files[0]) {
+            handleImageFile(this.files[0]);
+          } else {
+            previewImg.src = '';
+            previewImg.style.display = 'none';
+          }
+        });
+      });
+
+      // ── Drag and drop support ──
+      const dropOverlay = document.getElementById('drop-overlay');
+      let dragCounter = 0;
+
+      document.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        dragCounter++;
+        if (dragCounter === 1) {
+          dropOverlay.classList.add('active');
+        }
+      });
+      document.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dragCounter--;
+        if (dragCounter <= 0) {
+          dragCounter = 0;
+          dropOverlay.classList.remove('active');
+        }
+      });
+      document.addEventListener('dragover', (e) => {
+        e.preventDefault();
+      });
+      document.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dragCounter = 0;
+        dropOverlay.classList.remove('active');
+
+        const files = e.dataTransfer.files;
+        if (files && files.length > 0) {
+          const file = files[0];
+          if (file.type.startsWith('image/')) {
+            // Assign file to the file input
+            const dt = new DataTransfer();
+            dt.items.add(file);
+            const imgInput = document.querySelector('input[name="image"]');
+            if (imgInput) {
+              imgInput.files = dt.files;
+            }
+            handleImageFile(file);
+          }
+        }
+      });
+
+      // Custom autocomplete for airport codes (IATA/ICAO only)
+      const airportInput = document.querySelector('input[name="airport"]');
+      if (airportInput && typeof AIRPORT_DATA !== 'undefined') {
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'relative';
+        airportInput.parentNode.insertBefore(wrapper, airportInput);
+        wrapper.appendChild(airportInput);
+
+        const list = document.createElement('ul');
+        list.style.position = 'absolute';
+        list.style.top = '100%';
+        list.style.left = '0';
+        list.style.width = '100%';
+        list.style.maxHeight = '200px';
+        list.style.overflowY = 'auto';
+        list.style.backgroundColor = '#fff';
+        list.style.border = '1px solid #ccc';
+        list.style.borderRadius = '4px';
+        list.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+        list.style.zIndex = '1000';
+        list.style.margin = '0';
+        list.style.padding = '0';
+        list.style.listStyle = 'none';
+        list.style.display = 'none';
+        wrapper.appendChild(list);
+
+        airportInput.setAttribute('autocomplete', 'off');
+
+        function updateList(query) {
+          list.innerHTML = '';
+          if (!query) {
+            list.style.display = 'none';
+            return;
+          }
+          query = query.toUpperCase();
+          let count = 0;
+          for (const [iata, info] of Object.entries(AIRPORT_DATA)) {
+            const icao = info.ic ? info.ic.toUpperCase() : "";
+            // Only match IATA or ICAO
+            if (iata.includes(query) || (icao && icao.includes(query))) {
+              const li = document.createElement('li');
+              li.style.padding = '8px 12px';
+              li.style.cursor = 'pointer';
+              li.style.borderBottom = '1px solid #f0f0f0';
+              li.style.fontSize = '13px';
+
+              const codeDisplay = icao ? `${iata} / ${icao}` : iata;
+              li.style.color = '#333';
+              li.innerHTML = `<strong>${codeDisplay}</strong> <span style="color:#888; font-size:12px; margin-left:8px;">${info.n}</span>`;
+
+              li.addEventListener('mousedown', (e) => {
+                // Use mousedown instead of click to fire before input blur
+                airportInput.value = iata;
+                list.style.display = 'none';
+                e.preventDefault();
+              });
+              li.addEventListener('mouseover', () => { li.style.backgroundColor = '#f5f5f5'; });
+              li.addEventListener('mouseout', () => { li.style.backgroundColor = 'transparent'; });
+
+              list.appendChild(li);
+              count++;
+              if (count > 50) break; // Limit results
+            }
+          }
+          list.style.display = count > 0 ? 'block' : 'none';
+        }
+
+        airportInput.addEventListener('input', (e) => {
+          updateList(e.target.value);
+        });
+
+        airportInput.addEventListener('focus', (e) => {
+          updateList(e.target.value);
+        });
+
+        airportInput.addEventListener('blur', () => {
+          list.style.display = 'none';
+        });
+      }
+      // Custom generic autocomplete for airline, model, sub_model
+      const genericData = {
+        airline: [
+          {% for item in airlines %}{% if item %}'{{ item|escapejs }}'{% if not forloop.last %}, {% endif %} {% endif %} {% endfor %}
+        ],
+    model: [
+      {% for item in models %}{% if item %} '{{ item|escapejs }}'{% if not forloop.last %}, {% endif %} {% endif %} {% endfor %}
+        ],
+    sub_model: [
+      {% for item in sub_models %}{% if item %} '{{ item|escapejs }}'{% if not forloop.last %}, {% endif %} {% endif %} {% endfor %}
+        ]
+      };
+
+    ['airline', 'model', 'sub_model'].forEach(fieldName => {
+      const input = document.querySelector(`input[name="${fieldName}"]`);
+      if (!input) return;
+
+      const dataList = genericData[fieldName];
+
+      const wrapper = document.createElement('div');
+      wrapper.style.position = 'relative';
+      input.parentNode.insertBefore(wrapper, input);
+      wrapper.appendChild(input);
+
+      const list = document.createElement('ul');
+      list.style.position = 'absolute';
+      list.style.top = '100%';
+      list.style.left = '0';
+      list.style.width = '100%';
+      list.style.maxHeight = '200px';
+      list.style.overflowY = 'auto';
+      list.style.backgroundColor = '#fff';
+      list.style.border = '1px solid #ccc';
+      list.style.borderRadius = '4px';
+      list.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+      list.style.zIndex = '1000';
+      list.style.margin = '0';
+      list.style.padding = '0';
+      list.style.listStyle = 'none';
+      list.style.display = 'none';
+      wrapper.appendChild(list);
+
+      function updateList(query) {
+        list.innerHTML = '';
+        if (!query) {
+          list.style.display = 'none';
+          return;
+        }
+        query = query.toLowerCase();
+        let count = 0;
+        for (const item of dataList) {
+          if (item.toLowerCase().includes(query)) {
+            const li = document.createElement('li');
+            li.style.padding = '8px 12px';
+            li.style.cursor = 'pointer';
+            li.style.borderBottom = '1px solid #f0f0f0';
+            li.style.fontSize = '13px';
+            li.style.color = '#333';
+            li.style.display = 'flex';
+            li.style.alignItems = 'center';
+            li.style.gap = '8px';
+
+            const matchIndex = item.toLowerCase().indexOf(query);
+            let displayHTML = item;
+            if (matchIndex >= 0) {
+              const before = item.substring(0, matchIndex);
+              const match = item.substring(matchIndex, matchIndex + query.length);
+              const after = item.substring(matchIndex + query.length);
+              displayHTML = `${before}<strong>${match}</strong>${after}`;
+            }
+
+            let icon = '✈️';
+            if (fieldName === 'model' || fieldName === 'sub_model') icon = '⚙️';
+
+            li.innerHTML = `<span style="font-size:11px; opacity:0.7;">${icon}</span> <span>${displayHTML}</span>`;
+
+            li.addEventListener('mousedown', (e) => {
+              input.value = item;
+              list.style.display = 'none';
+              e.preventDefault();
+            });
+            li.addEventListener('mouseover', () => { li.style.backgroundColor = '#f5f5f5'; });
+            li.addEventListener('mouseout', () => { li.style.backgroundColor = 'transparent'; });
+
+            list.appendChild(li);
+            count++;
+            if (count > 50) break;
+          }
+        }
+        list.style.display = count > 0 ? 'block' : 'none';
+      }
+
+      input.addEventListener('input', (e) => updateList(e.target.value));
+      input.addEventListener('focus', (e) => updateList(e.target.value));
+      input.addEventListener('blur', () => { list.style.display = 'none'; });
+    });
+
+    });
+  </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const modelInputOriginal = document.querySelector('input[name="model"]');
+      const subModelInputOriginal = document.querySelector('input[name="sub_model"]');
+      if (!modelInputOriginal || !subModelInputOriginal) return;
+
+      const modelOptions = JSON.parse(document.getElementById('model-list-data').textContent || '[]');
+      const rawModelSubmodelMap = JSON.parse(
+        document.getElementById('model-submodel-map').textContent || '{}'
+      );
+      const modelSubmodelMap = Object.fromEntries(
+        Object.entries(rawModelSubmodelMap).map(([model, submodels]) => [
+          model.trim().toLowerCase(),
+          Array.isArray(submodels) ? submodels : [],
+        ])
+      );
+
+      function resetAutocompleteInput(input) {
+        const parent = input.parentElement;
+        const clone = input.cloneNode(true);
+        clone.value = input.value;
+
+        if (parent && parent.tagName === 'DIV' && parent.querySelector('ul')) {
+          parent.innerHTML = '';
+          parent.appendChild(clone);
+          parent.style.position = 'relative';
+          return clone;
+        }
+
+        input.replaceWith(clone);
+        return clone;
+      }
+
+      function highlightMatch(text, query) {
+        if (!query) return text;
+        const matchIndex = text.toLowerCase().indexOf(query.toLowerCase());
+        if (matchIndex < 0) return text;
+
+        const before = text.substring(0, matchIndex);
+        const match = text.substring(matchIndex, matchIndex + query.length);
+        const after = text.substring(matchIndex + query.length);
+        return `${before}<strong>${match}</strong>${after}`;
+      }
+
+      function createAutocomplete(input, getItems, options = {}) {
+        if (!input) return { updateList() { }, hide() { } };
+
+        const wrapper = input.parentElement;
+        wrapper.style.position = 'relative';
+
+        const list = document.createElement('ul');
+        list.style.position = 'absolute';
+        list.style.top = '100%';
+        list.style.left = '0';
+        list.style.width = '100%';
+        list.style.maxHeight = '200px';
+        list.style.overflowY = 'auto';
+        list.style.backgroundColor = '#fff';
+        list.style.border = '1px solid #ccc';
+        list.style.borderRadius = '4px';
+        list.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+        list.style.zIndex = '1000';
+        list.style.margin = '0';
+        list.style.padding = '0';
+        list.style.listStyle = 'none';
+        list.style.display = 'none';
+        wrapper.appendChild(list);
+
+        function hide() {
+          list.style.display = 'none';
+        }
+
+        function updateList(query) {
+          list.innerHTML = '';
+          if (options.isDisabled && options.isDisabled()) {
+            hide();
+            return;
+          }
+
+          const items = (getItems(query) || []).filter(Boolean);
+          const normalizedQuery = (query || '').trim().toLowerCase();
+          const filteredItems = normalizedQuery
+            ? items.filter(item => item.toLowerCase().includes(normalizedQuery))
+            : items;
+
+          filteredItems.slice(0, 50).forEach(item => {
+            const li = document.createElement('li');
+            li.style.padding = '8px 12px';
+            li.style.cursor = 'pointer';
+            li.style.borderBottom = '1px solid #f0f0f0';
+            li.style.fontSize = '13px';
+            li.style.color = '#333';
+            li.innerHTML = highlightMatch(item, normalizedQuery);
+
+            li.addEventListener('mousedown', (e) => {
+              input.value = item;
+              hide();
+              if (typeof options.onSelect === 'function') {
+                options.onSelect(item);
+              }
+              e.preventDefault();
+            });
+            li.addEventListener('mouseover', () => { li.style.backgroundColor = '#f5f5f5'; });
+            li.addEventListener('mouseout', () => { li.style.backgroundColor = 'transparent'; });
+            list.appendChild(li);
+          });
+
+          list.style.display = list.childElementCount > 0 ? 'block' : 'none';
+        }
+
+        input.addEventListener('input', (e) => {
+          if (typeof options.onInput === 'function') {
+            options.onInput(e.target.value);
+          }
+          updateList(e.target.value);
+        });
+        input.addEventListener('focus', (e) => updateList(e.target.value));
+        input.addEventListener('blur', () => {
+          window.setTimeout(hide, 100);
+        });
+
+        return { updateList, hide };
+      }
+
+      const modelInput = resetAutocompleteInput(modelInputOriginal);
+      const subModelInput = resetAutocompleteInput(subModelInputOriginal);
+
+      function getSubModelOptions() {
+        return modelSubmodelMap[modelInput.value.trim().toLowerCase()] || [];
+      }
+
+      function syncSubModelState() {
+        const hasModel = !!modelInput.value.trim();
+        const knownOptions = hasModel ? getSubModelOptions() : [];
+
+        subModelInput.disabled = !hasModel;
+        subModelInput.style.backgroundColor = hasModel ? '#ffffff' : '#f3f4f6';
+        subModelInput.style.color = hasModel ? '#111827' : '#9ca3af';
+        subModelInput.style.cursor = hasModel ? 'text' : 'not-allowed';
+        subModelInput.placeholder = !hasModel
+          ? 'Fill model first'
+          : '';
+
+        if (!hasModel) {
+          subModelInput.value = '';
+        }
+      }
+
+      createAutocomplete(modelInput, () => modelOptions, {
+        onInput: syncSubModelState,
+        onSelect: syncSubModelState,
+      });
+
+      const subModelAutocomplete = createAutocomplete(subModelInput, () => getSubModelOptions(), {
+        isDisabled: () => !modelInput.value.trim(),
+      });
+
+      modelInput.addEventListener('change', () => {
+        syncSubModelState();
+        subModelAutocomplete.updateList(subModelInput.value);
+      });
+
+      syncSubModelState();
+    });
+  </script>
+  <div style="text-align:center;padding:24px 0 12px;font-size:10px;color:#282828;">
+    <a href="https://beian.miit.gov.cn/" target="_blank" style="color:#282828;text-decoration:none;">a114514</a>
+    <span style="margin:0 4px;">·</span>
+    <a href="https://beian.mps.gov.cn/#/query/webSearch?code=61011302001964" rel="noreferrer" target="_blank"
+      style="color:#282828;text-decoration:none;">陕公网安备6101130200****号</a>
+  </div>
+</body>
+
+</html>

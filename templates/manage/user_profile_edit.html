@@ -1,0 +1,304 @@
+{% load static %}
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Manage Site - MyJetCard</title>
+  <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
+  <link rel="stylesheet" href="{% static 'base.css' %}">
+  <style>
+    .wrap {
+      max-width: 900px;
+    }
+
+    .split {
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid #eee;
+    }
+
+    label {
+      display: block;
+      margin-top: 14px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #444;
+      margin-bottom: 4px;
+    }
+
+    /* Fix text input styles but avoid breaking checkboxes and file uploads */
+    input:not([type="checkbox"]):not([type="file"]):not([type="hidden"]),
+    textarea,
+    select {
+      width: 100%;
+      max-width: 520px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+
+    /* Better spacing for file inputs */
+    input[type="file"] {
+      margin-top: 8px;
+      margin-bottom: 8px;
+    }
+
+    /* Make checkboxes inline and natural size */
+    input[type="checkbox"] {
+      width: auto;
+      margin-left: 12px;
+      margin-right: 4px;
+      cursor: pointer;
+      vertical-align: middle;
+    }
+
+    /* Undo block layout for the labels specifically following checkboxes 'Clear' */
+    input[type="checkbox"]+label {
+      display: inline-block;
+      margin-top: 0;
+      font-weight: 500;
+      color: #dc3545;
+      /* Soft red for danger action */
+      cursor: pointer;
+      vertical-align: middle;
+    }
+
+    img {
+      height: 140px;
+      border: 1px solid #eee;
+      border-radius: 8px;
+      display: block;
+      margin-top: 8px;
+    }
+
+    .hint {
+      color: #888;
+      font-size: 12px;
+      margin-top: 6px;
+    }
+
+    .row {
+      margin-top: 12px;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 12px;
+    }
+
+    th,
+    td {
+      border: 1px solid #eee;
+      padding: 8px;
+      font-size: 13px;
+      vertical-align: top;
+    }
+
+    th {
+      background: #fafafa;
+      text-align: left;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .btn-danger {
+      border-color: #f3c0c0;
+      color: #b00000;
+    }
+
+    a {
+      color: #0054a6;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    /* ✅ 页面最底部操作区 */
+    .page-bottom-actions {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 1px solid #eee;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: flex-start;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div style="margin-bottom:16px;">
+        <a class="btn" href="/{{ user.username }}/">Home</a>
+      </div>
+
+      <h2>Manage Site Profile</h2>
+
+      {% if site.avatar %}
+      <div class="row">
+        <div><b>Avatar Preview</b></div>
+        <img src="{{ site.avatar.url }}" alt="">
+      </div>
+      {% endif %}
+
+      {% if site.banner %}
+      <div class="row">
+        <div><b>Banner Preview</b></div>
+        <img src="{{ site.banner.url }}" alt="">
+      </div>
+      {% endif %}
+
+      <!-- SiteProfile 表单 -->
+      <form id="site-form" method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="save_site">
+        {{ form.non_field_errors }}
+
+        <label>Location</label>{{ form.location }}
+        <label>Hobbies</label>{{ form.hobbies }}
+
+        <label>Avatar (Upload)</label>{{ form.avatar }}
+        <div id="avatar-preview-container" style="display:none; margin-top:8px;">
+          <img id="avatar-preview" src="" alt="Avatar Preview">
+        </div>
+
+        <label>Banner (Upload)</label>{{ form.banner }}
+        <div id="banner-preview-container" style="display:none; margin-top:8px;">
+          <img id="banner-preview" src="" alt="Banner Preview">
+        </div>
+
+        <label>Pinned IDs</label>
+        {{ form.pinned_ids }}
+        <div class="hint">[id1, id2, id3] Example: <code>[1, 2, 3]</code></div>
+        <label>If your site is slow, check this</label>
+        <div style="display:flex; align-items:center;">
+          {{ form.show_perf_panel }}
+          <label for="{{ form.show_perf_panel.id_for_label }}"
+            style="display:inline-block; margin:0 0 0 6px; text-transform:none; font-size:13px; letter-spacing:normal; color:#333; cursor:pointer;">
+            Show API Performance Panel
+          </label>
+        </div>
+        <div class="hint">If checked, the API execution time panel will be shown to everyone visiting your
+          site.</div>
+
+      </form>
+
+      <!-- Gear 区 -->
+      <div class="split">
+        <h3>Gear Items</h3>
+
+        <!-- 新增 Gear -->
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="add_gear">
+          {{ gear_form.non_field_errors }}
+
+          <label>Kind</label>{{ gear_form.kind }}
+          <label>Name</label>{{ gear_form.name }}
+
+          <div class="row">
+            <button class="btn" type="submit">Add Gear</button>
+          </div>
+        </form>
+
+        <!-- Gear 列表 -->
+        <table>
+          <thead>
+            <tr>
+              <th style="width:80px;">ID</th>
+              <th style="width:120px;">Kind</th>
+              <th>Name</th>
+              <th style="width:220px;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for g in gear_items %}
+            <tr>
+              <td>{{ g.id }}</td>
+              <td>{{ g.kind }}</td>
+              <td>{{ g.name }}</td>
+              <td>
+                <a class="btn" href="{% url 'photos_manage_gear_edit' g.id %}">Edit</a>
+                <form method="post" action="{% url 'photos_manage_gear_delete' g.id %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button class="btn btn-danger" type="submit" onclick="return confirm('Delete this gear item?')">
+                    Delete
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="4">No gear items yet.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ✅ 这块放在整个页面（card）最下面 -->
+      <div class="page-bottom-actions">
+        <!-- 用 form="site-form" 让按钮在表单外也能提交 -->
+        <button class="btn" type="submit" form="site-form">Save</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    function setupImagePreview(inputName, previewId, containerId) {
+      const input = document.querySelector(`input[name="${inputName}"]`);
+      const preview = document.getElementById(previewId);
+      const container = document.getElementById(containerId);
+
+      if (input && preview && container) {
+        input.addEventListener('change', function (e) {
+          const file = e.target.files[0];
+          if (file) {
+            const url = URL.createObjectURL(file);
+            preview.src = url;
+            container.style.display = 'block';
+
+            // Cleanup previous preview created url to prevent memory leaks if it changes again
+            preview.onload = function () {
+              URL.revokeObjectURL(preview.src);
+            }
+          } else {
+            preview.src = '';
+            container.style.display = 'none';
+          }
+        });
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      setupImagePreview("avatar", "avatar-preview", "avatar-preview-container");
+      setupImagePreview("banner", "banner-preview", "banner-preview-container");
+    });
+  </script>
+  <div style="text-align:center;padding:24px 0 12px;font-size:10px;color:#282828;">
+    <a href="https://beian.miit.gov.cn/" target="_blank" style="color:#282828;text-decoration:none;">a114514</a>
+    <span style="margin:0 4px;">·</span>
+    <a href="https://beian.mps.gov.cn/#/query/webSearch?code=61011302001964" rel="noreferrer" target="_blank"
+      style="color:#282828;text-decoration:none;">陕公网安备6101130200****号</a>
+  </div>
+</body>
+
+</html>

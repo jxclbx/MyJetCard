@@ -1,0 +1,161 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{view_user.username}}'s Photo - MyJetCard</title>
+    <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>window.SITE_USER = "{{ view_user.username }}";</script>
+    <style>
+        /* 1. 统一背景色与基础文字 */
+        * {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+
+        body {
+            background-color: #ECECEC;
+            color: #333;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        /* 2. 统一标题样式 (带侧边粗线条) */
+        .section-title {
+            font-size: 0.875rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            border-left: 4px solid #282828;
+            padding-left: 0.75rem;
+            color: #444;
+        }
+
+        /* 3. 页面容器微调 */
+        main {
+            min-height: 80vh;
+        }
+
+        .sort-btn {
+            padding: 4px 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #fff;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .sort-btn:hover {
+            border-color: #999;
+            color: #333;
+        }
+
+        .sort-btn.active {
+            background: #282828;
+            color: #fff;
+            border-color: #282828;
+        }
+    </style>
+</head>
+
+<body class="pb-20">
+
+    <nav class="bg-[#282828] text-white shadow-md relative">
+        <!-- ✅ 电脑端：完全保留你原来的结构/样式 -->
+        <div class="w-full h-[52px] flex justify-between items-center px-10">
+            <div class="flex items-baseline space-x-3">
+                <a href="/" class="text-xl font-bold tracking-tighter italic hover:opacity-90 transition">
+                    My<span class="text-blue-500">JetCard</span>
+                </a>
+                {% if user.is_authenticated %}
+                <span class="text-[10px] text-gray-400 font-normal tracking-wide hidden sm:inline">
+                    Logged in as {{ user.username }}
+                </span>
+                {% endif %}
+            </div>
+
+            <div class="flex items-center space-x-10">
+                <!-- 电脑端菜单：保持原样（md及以上显示） -->
+                <div class="space-x-8 text-xs uppercase tracking-widest font-bold hidden md:flex">
+                    <a href="/{{ view_user.username }}/" class="text-white hover:text-blue-300 transition">Home</a>
+                    <a href="/{{ view_user.username }}/gallery/" class="text-blue-400">Photos</a>
+                    <a href="/{{ view_user.username }}/stats/"
+                        class="text-white hover:text-blue-300 transition">Stats</a>
+                </div>
+
+                <div class="relative flex items-center">
+                    <input type="text" id="nav-search-input" placeholder="Search Reg..."
+                        class="bg-white text-black text-[11px] px-3 py-1.5 w-32 md:w-44 rounded-sm focus:outline-none placeholder-gray-400 font-sans">
+                    <button onclick="performNavSearch()"
+                        class="absolute right-2 text-gray-400 hover:text-blue-500 transition">
+                        <i class="fa fa-search text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ 手机端：另起一行显示菜单（md以下显示） -->
+        <div class="md:hidden w-full px-4 pb-3">
+            <div class="flex justify-center space-x-8 text-xs uppercase tracking-widest font-bold">
+                <a href="/{{ view_user.username }}/" class="text-white hover:text-blue-300 transition">Home</a>
+                <a href="/{{ view_user.username }}/gallery/" class="text-blue-400">Photos</a>
+                <a href="/{{ view_user.username }}/stats/" class="text-white hover:text-blue-300 transition">Stats</a>
+            </div>
+        </div>
+    </nav>
+
+
+    <main class="max-w-7xl mx-auto px-4 mt-8">
+
+        <div class="mb-8 flex items-center justify-between flex-wrap gap-4">
+            <h1 id="gallery-title" class="section-title tracking-wider">LOADING DATABASE...</h1>
+            <div class="flex items-center gap-5">
+                <label style="cursor:pointer;" class="flex items-center gap-1.5 text-[11px] font-bold text-gray-500 hover:text-gray-800 uppercase tracking-widest transition">
+                    <input type="checkbox" id="unique-reg-toggle"> Distinct Reg
+                </label>
+                <div id="sort-toggle" class="flex items-center gap-1 text-[11px] font-semibold tracking-wide uppercase">
+                    <button class="sort-btn active" data-field="date" data-dir="desc">Date ↓</button>
+                    <button class="sort-btn" data-field="id" data-dir="">Upload ↕</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="distinct-regs-container" class="hidden mb-8 p-4 bg-yellow-100 border border-yellow-200 text-yellow-900 text-xs rounded-sm leading-relaxed tracking-wide shadow-sm">
+            <!-- 注册号将在这显示 -->
+        </div>
+
+        <!-- 电脑端：只在上方翻页 -->
+        <div id="pagination" class="hidden md:flex justify-center flex-wrap items-center gap-2 mb-10">
+        </div>
+
+        <!-- ✅ 只改这里：手机2列，md起4列 -->
+        <div id="photo-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        </div>
+
+        <!-- 手机端：只在下方翻页 -->
+        <div id="pagination-bottom" class="flex md:hidden justify-center flex-wrap items-center gap-2 mt-12">
+        </div>
+
+    </main>
+
+    {% if request.user == view_user and view_user.site_profile.show_perf_panel %}
+    <script src="{% static 'perf.js' %}?v=1.0"></script>
+    {% endif %}
+    <script src="{% static 'gallery.js' %}?v=1.4"></script>
+    <div style="text-align:center;padding:24px 0 12px;font-size:10px;color:#282828;">
+        <a href="https://beian.miit.gov.cn/" target="_blank" style="color:#282828;text-decoration:none;">a114514</a>
+        <span style="margin:0 4px;">·</span>
+        <a href="https://beian.mps.gov.cn/#/query/webSearch?code=61011302001964" rel="noreferrer" target="_blank"
+            style="color:#282828;text-decoration:none;">陕公网安备6101130200****号</a>
+    </div>
+</body>
+
+</html>

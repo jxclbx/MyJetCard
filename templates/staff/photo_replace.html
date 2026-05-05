@@ -1,0 +1,260 @@
+{% load static %}
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Replace Image {{ photo.id }} - MyJetCard</title>
+  <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
+  <link rel="stylesheet" href="{% static 'base.css' %}">
+  <style>
+    .wrap {
+      max-width: 900px;
+    }
+
+    h2 {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      margin: 0 0 16px;
+    }
+
+    label {
+      display: block;
+      margin-top: 14px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      margin: 0;
+      background: #f5f5f5;
+    }
+
+    .wrap {
+      max-width: 900px;
+      margin: 32px auto;
+      padding: 0 16px;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      padding: 20px;
+      text-align: left;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      color: #0054a6;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      text-decoration: underline;
+    }
+
+    .btn-primary {
+      background: #0054a6;
+      color: #fff !important;
+      border-color: #004080;
+      font-weight: 600;
+      text-decoration: none !important;
+    }
+
+    .btn-primary:hover {
+      background: #004080;
+      text-decoration: none !important;
+    }
+
+    input[type="file"] {
+      margin-top: 8px;
+      padding: 8px;
+      border: 1px dashed #ccc;
+      border-radius: 6px;
+      font-size: 13px;
+      background: #fafafa;
+      cursor: pointer;
+      width: 100%;
+      max-width: 520px;
+      box-sizing: border-box;
+    }
+
+    input[type="file"]:hover {
+      border-color: #0054a6;
+    }
+
+    .row {
+      margin-top: 12px;
+    }
+
+    img.preview-img {
+      height: 160px;
+      border: 1px solid #eee;
+      border-radius: 8px;
+      display: block;
+      margin-top: 8px;
+      object-fit: cover;
+    }
+
+    .meta-table {
+      border-collapse: collapse;
+      margin: 14px 0 20px;
+      font-size: 13px;
+    }
+
+    .meta-table td {
+      padding: 4px 16px 4px 0;
+      color: #666;
+      border: none;
+    }
+
+    .meta-table td:first-child {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #888;
+      white-space: nowrap;
+    }
+
+    .meta-table td:last-child {
+      color: #111;
+      font-weight: 500;
+    }
+
+    .actions-bottom {
+      margin-top: 18px;
+      padding-top: 12px;
+      border-top: 1px solid #eee;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .notice {
+      margin-top: 16px;
+      padding: 10px 14px;
+      background: #f5f5f5;
+      border: 1px solid #e8e8e8;
+      border-radius: 6px;
+      font-size: 11px;
+      color: #888;
+      line-height: 1.7;
+      max-width: 520px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="card">
+
+      <div class="topbar">
+        <a class="btn" href="javascript:history.back();">Back</a>
+      </div>
+
+      <h2>Replace Image: ID {{ photo.id }}</h2>
+
+      <div class="row">
+        {% if photo.image_sm %}
+        <img class="preview-img" id="img-preview" src="{{ photo.image_sm.url }}" alt="">
+        {% elif photo.image %}
+        <img class="preview-img" id="img-preview" src="{{ photo.image.url }}" alt="">
+        {% else %}
+        <img class="preview-img" id="img-preview" src="{{ photo.src }}" alt="">
+        {% endif %}
+      </div>
+
+      <table class="meta-table">
+        <tr>
+          <td>Reg</td>
+          <td>{{ photo.reg }}</td>
+        </tr>
+        <tr>
+          <td>Airline</td>
+          <td>{{ photo.airline }}</td>
+        </tr>
+        <tr>
+          <td>Model</td>
+          <td>{{ photo.model }}{% if photo.sub_model %} · {{ photo.sub_model }}{% endif %}</td>
+        </tr>
+        <tr>
+          <td>Date</td>
+          <td>{{ photo.date }}</td>
+        </tr>
+      </table>
+
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+
+        <label for="id_image">New Image File</label>
+        <input type="file" name="image" id="id_image" accept="image/*" required>
+
+        <div class="actions-bottom">
+          <button class="btn btn-primary" id="btn-save" type="submit">Upload & Replace</button>
+          <a href="javascript:history.back();" class="btn">Cancel</a>
+        </div>
+      </form>
+
+      <div class="notice">
+        ⚠️ 上传后将自动生成新的 sm / lg 缩略图并替换数据库路径。旧文件不会立即删除，可通过
+        <code>clean_orphan_media --delete</code> 统一清理。Pending 记录不受影响。
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // 选择新文件后立即在页面上预览
+    document.getElementById('id_image').addEventListener('change', function () {
+      const file = this.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const preview = document.getElementById('img-preview');
+        if (preview) preview.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // 上传中防重复提交
+    document.querySelector('form').addEventListener('submit', function () {
+      const btn = document.getElementById('btn-save');
+      btn.disabled = true;
+      btn.textContent = 'Uploading...';
+      btn.style.opacity = '0.6';
+    });
+  </script>
+
+  <div style="text-align:center;padding:24px 0 12px;font-size:10px;color:#282828;">
+    <a href="https://beian.miit.gov.cn/" target="_blank" style="color:#282828;text-decoration:none;">a114514</a>
+    <span style="margin:0 4px;">·</span>
+    <a href="https://beian.mps.gov.cn/#/query/webSearch?code=61011302001964" rel="noreferrer" target="_blank"
+      style="color:#282828;text-decoration:none;">陕公网安备6101130200****号</a>
+  </div>
+</body>
+
+</html>

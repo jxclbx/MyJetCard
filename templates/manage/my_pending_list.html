@@ -1,0 +1,109 @@
+{% load static %}
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Manage Pending Photos - MyJetCard</title>
+  <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
+  <link rel="stylesheet" href="{% static 'base.css' %}">
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="card">
+
+      <div class="topbar">
+        <a class="btn" href="/{{ user.username }}/">Home</a>
+        <h2 style="margin:0; flex:1;">My Pending Photos</h2>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width:50px;">ID</th>
+            <th style="width:80px;">Preview</th>
+            <th style="width:110px;">Reg</th>
+            <th>Model</th>
+            <th>Airline</th>
+            <th style="width:80px;">Airport</th>
+            <th style="width:140px;">Submitted</th>
+            <th style="width:110px;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in photos %}
+          <tr>
+            <td class="muted">{{ p.id }}</td>
+            <td>
+              {% if p.image_sm %}
+              <img class="thumb" src="{{ p.image_sm.url }}" alt="">
+              {% elif p.image %}
+              <img class="thumb" src="{{ p.image.url }}" alt="">
+              {% else %}
+              <img class="thumb" src="{{ p.src }}" alt="">
+              {% endif %}
+            </td>
+            <td style="font-weight:600; letter-spacing:0.03em;">{{ p.reg }}</td>
+            <td>{{ p.model }}</td>
+            <td>{{ p.airline }}</td>
+            <td>{{ p.airport }}</td>
+            <td class="muted">{{ p.submitted_at|date:"Y-m-d H:i" }}</td>
+            <td>
+              {% if p.status == 'approved' %}
+              <span class="badge badge-approved">Approved</span>
+              <div style="margin-top:6px;">
+                {% if p.approved_photo_id %}
+                <a href="/{{ request.user.username }}/photo/?id={{ p.approved_photo_id }}/" class="btn"
+                  style="zoom:0.8;">View Photo</a>
+                {% else %}
+                <span class="btn"
+                  style="zoom:0.8; pointer-events: none; background-color: #ccc; color: #8b0000; border-color: #ccc;">Unavailable</span>
+                {% endif %}
+              </div>
+              {% elif p.status == 'rejected' %}
+              <span class="badge badge-rejected">Rejected</span>
+              <div class="muted" style="margin-top:4px; font-size:11px;">{{ p.review_note }}</div>
+              {% else %}
+              <span class="badge badge-pending">Pending</span>
+              <div style="margin-top:6px;"><a href="{% url 'photos_manage_pending_edit' p.id %}" class="btn"
+                  style="zoom:0.8;">Edit Info</a></div>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="muted" style="padding:24px; text-align:center;">No pending photos yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {% if page_obj %}
+      <div class="pagination">
+        <span class="muted">
+          Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} &nbsp;·&nbsp; {{ page_obj.paginator.count }}
+          items
+        </span>
+        {% if page_obj.has_previous %}
+        <a href="?page=1">« First</a>
+        <a href="?page={{ page_obj.previous_page_number }}">‹ Prev</a>
+        {% endif %}
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}">Next ›</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}">Last »</a>
+        {% endif %}
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+  <div style="text-align:center;padding:24px 0 12px;font-size:10px;color:#282828;">
+    <a href="https://beian.miit.gov.cn/" target="_blank" style="color:#282828;text-decoration:none;">a114514</a>
+    <span style="margin:0 4px;">·</span>
+    <a href="https://beian.mps.gov.cn/#/query/webSearch?code=61011302001964" rel="noreferrer" target="_blank"
+      style="color:#282828;text-decoration:none;">陕公网安备6101130200****号</a>
+  </div>
+</body>
+
+</html>

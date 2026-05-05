@@ -1,0 +1,653 @@
+{% load static %}
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Edit Photo {{ photo.id }} - MyJetCard</title>
+  <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
+  <link rel="stylesheet" href="{% static 'base.css' %}">
+  <style>
+    .wrap {
+      max-width: 760px;
+    }
+
+    h2 {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      margin: 0 0 16px;
+    }
+
+    label {
+      display: block;
+      margin-top: 14px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #666;
+      margin-bottom: 4px;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      margin: 0;
+      background: #f5f5f5;
+    }
+
+    .wrap {
+      max-width: 900px;
+      margin: 32px auto;
+      padding: 0 16px;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      padding: 20px;
+      text-align: left;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      color: #0054a6;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      text-decoration: underline;
+    }
+
+    h2 {
+      margin: 6px 0 12px;
+    }
+
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: 700;
+    }
+
+    /* Fix text input styles but avoid breaking checkboxes and file uploads */
+    input:not([type="checkbox"]):not([type="file"]):not([type="hidden"]),
+    textarea,
+    select {
+      width: 100%;
+      max-width: 520px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+
+    /* Better spacing for file inputs */
+    input[type="file"] {
+      margin-top: 8px;
+    }
+
+    /* Make checkboxes inline and natural size */
+    input[type="checkbox"] {
+      width: auto;
+      margin-left: 12px;
+      margin-right: 4px;
+      cursor: pointer;
+      vertical-align: middle;
+    }
+
+    /* Undo block layout for the labels specifically following checkboxes 'Clear' */
+    input[type="checkbox"]+label {
+      display: inline-block;
+      margin-top: 0;
+      font-weight: 500;
+      color: #dc3545;
+      /* Soft red for danger action */
+      cursor: pointer;
+      vertical-align: middle;
+    }
+
+    img {
+      height: 160px;
+      border: 1px solid #eee;
+      border-radius: 8px;
+      display: block;
+      margin-top: 8px;
+    }
+
+    .row {
+      margin-top: 12px;
+    }
+
+    .actions-bottom {
+      margin-top: 18px;
+      padding-top: 12px;
+      border-top: 1px solid #eee;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .btn-save {
+      background: #0054a6;
+      color: #fff !important;
+      border-color: #004a92;
+      font-weight: 600;
+      text-decoration: none !important;
+    }
+
+    .btn-save:hover {
+      background: #004a92;
+      text-decoration: none !important;
+    }
+
+    .tags-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 18px;
+      margin-top: 10px;
+      padding: 10px 0;
+      max-width: 520px;
+    }
+
+    .tags-row .tag-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .tags-row .tag-item label {
+      display: inline;
+      margin: 0;
+      font-size: 12px;
+      font-weight: 600;
+      color: #444;
+      text-transform: none;
+      cursor: pointer;
+    }
+
+    .tags-row .tag-item input[type="checkbox"] {
+      margin: 0;
+      width: auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="card">
+
+      <div class="topbar">
+        <a class="btn" href="javascript:history.back();">
+          Back
+        </a>
+      </div>
+
+      <h2>Edit: ID {{ photo.id }}</h2>
+
+      <div class="row">
+        {% if photo.image_sm %}
+        <img id="img-preview" src="{{ photo.image_sm.url }}" alt="">
+        {% elif photo.image %}
+        <img id="img-preview" src="{{ photo.image.url }}" alt="">
+        {% else %}
+        <img id="img-preview" src="{{ photo.src }}" alt="">
+        {% endif %}
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+        {{ form.non_field_errors }}
+
+        <label>Reg</label>{{ form.reg }}
+        <label>Model</label>{{ form.model }}
+        <label>Sub Model</label>{{ form.sub_model }}
+        <label>Airline</label>{{ form.airline }}
+        <label>Airport</label>{{ form.airport }}
+        <label>Date</label>{{ form.date }}
+        <label>Camera</label>{{ form.camera }}
+        <label>Lens</label>{{ form.lens }}
+        <label>Remarks</label>{{ form.remarks }}
+
+        <label style="margin-bottom:0;">Tags</label>
+        <div class="tags-row">
+          <span class="tag-item">{{ form.featured }}<label
+              for="{{ form.featured.id_for_label }}">Featured</label></span>
+          <span class="tag-item">{{ form.is_special_livery }}<label
+              for="{{ form.is_special_livery.id_for_label }}">Special Livery</label></span>
+          <span class="tag-item">{{ form.is_cargo }}<label for="{{ form.is_cargo.id_for_label }}">Cargo</label></span>
+          <span class="tag-item">{{ form.is_bizjet }}<label for="{{ form.is_bizjet.id_for_label }}">Business
+              Jet</label></span>
+          <span class="tag-item">{{ form.is_helicopter }}<label
+              for="{{ form.is_helicopter.id_for_label }}">Helicopter</label></span>
+          <span class="tag-item">{{ form.is_rare }}<label for="{{ form.is_rare.id_for_label }}">Rare</label></span>
+        </div>
+
+
+        <div class="actions-bottom">
+          <button class="btn btn-save" id="btn-save" type="submit">
+            Save Changes & Back</button>
+        </div>
+      </form>
+      <script>
+        document.querySelector('form').addEventListener('submit', async function (e) {
+          e.preventDefault();
+          var btn = document.getElementById('btn-save');
+          btn.disabled = true;
+          btn.textContent = 'Saving...';
+          btn.style.opacity = '0.6';
+
+          try {
+            const formData = new FormData(this);
+            const response = await fetch(window.location.href, {
+              method: 'POST',
+              body: formData,
+              headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+              }
+            });
+
+            if (response.ok) {
+              // "save 完了也调用 back"
+              history.back();
+            } else {
+              alert('Save failed. Please check your input.');
+              btn.disabled = false;
+              btn.textContent = 'Save Changes & Back';
+              btn.style.opacity = '1';
+            }
+          } catch (err) {
+            alert('Network error: ' + err.message);
+            btn.disabled = false;
+            btn.textContent = 'Save Changes & Back';
+            btn.style.opacity = '1';
+          }
+        });
+      </script>
+
+    </div>
+  </div>
+
+  <script src="{% static 'airport-data.js' %}?v=1.0"></script>
+  {{ models|json_script:"model-list-data" }}
+  {{ model_submodel_map|json_script:"model-submodel-map" }}
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Auto uppercase for reg input
+      const regInput = document.querySelector('input[name="reg"]');
+      if (regInput) {
+        regInput.addEventListener('input', function () {
+          this.value = this.value.toUpperCase();
+        });
+      }
+
+      // Custom autocomplete for airport codes (IATA/ICAO only)
+      const airportInput = document.querySelector('input[name="airport"]');
+      if (airportInput && typeof AIRPORT_DATA !== 'undefined') {
+        const wrapper = document.createElement('div');
+        wrapper.style.position = 'relative';
+        airportInput.parentNode.insertBefore(wrapper, airportInput);
+        wrapper.appendChild(airportInput);
+
+        const list = document.createElement('ul');
+        list.style.position = 'absolute';
+        list.style.top = '100%';
+        list.style.left = '0';
+        list.style.width = '100%';
+        list.style.maxHeight = '200px';
+        list.style.overflowY = 'auto';
+        list.style.backgroundColor = '#fff';
+        list.style.color = '#333';
+        list.style.border = '1px solid #ccc';
+        list.style.borderRadius = '4px';
+        list.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+        list.style.zIndex = '1000';
+        list.style.margin = '0';
+        list.style.padding = '0';
+        list.style.listStyle = 'none';
+        list.style.display = 'none';
+        wrapper.appendChild(list);
+
+        airportInput.setAttribute('autocomplete', 'off');
+
+        function updateList(query) {
+          list.innerHTML = '';
+          if (!query) {
+            list.style.display = 'none';
+            return;
+          }
+          query = query.toUpperCase();
+          let count = 0;
+          for (const [iata, info] of Object.entries(AIRPORT_DATA)) {
+            const icao = info.ic ? info.ic.toUpperCase() : "";
+            // Only match IATA or ICAO
+            if (iata.includes(query) || (icao && icao.includes(query))) {
+              const li = document.createElement('li');
+              li.style.padding = '8px 12px';
+              li.style.cursor = 'pointer';
+              li.style.borderBottom = '1px solid #f0f0f0';
+              li.style.fontSize = '13px';
+
+              const codeDisplay = icao ? `${iata} / ${icao}` : iata;
+              li.style.color = '#333';
+              li.innerHTML = `<strong>${codeDisplay}</strong> <span style="color:#888; font-size:12px; margin-left:8px;">${info.n}</span>`;
+
+              li.addEventListener('mousedown', (e) => {
+                // Use mousedown instead of click to fire before input blur
+                airportInput.value = iata;
+                list.style.display = 'none';
+                e.preventDefault();
+              });
+              li.addEventListener('mouseover', () => { li.style.backgroundColor = '#f5f5f5'; });
+              li.addEventListener('mouseout', () => { li.style.backgroundColor = 'transparent'; });
+
+              list.appendChild(li);
+              count++;
+              if (count > 50) break; // Limit results
+            }
+          }
+          list.style.display = count > 0 ? 'block' : 'none';
+        }
+
+        airportInput.addEventListener('input', (e) => {
+          updateList(e.target.value);
+        });
+
+        airportInput.addEventListener('focus', (e) => {
+          updateList(e.target.value);
+        });
+
+        airportInput.addEventListener('blur', () => {
+          list.style.display = 'none';
+        });
+      }
+
+      // Custom generic autocomplete for airline, model, sub_model
+      const genericData = {
+        airline: [
+          {% for item in airlines %}{% if item %}'{{ item|escapejs }}'{% if not forloop.last %}, {% endif %} {% endif %} {% endfor %}
+        ],
+    model: [
+      {% for item in models %}{% if item %} '{{ item|escapejs }}'{% if not forloop.last %}, {% endif %} {% endif %} {% endfor %}
+        ],
+    sub_model: [
+      {% for item in sub_models %}{% if item %} '{{ item|escapejs }}'{% if not forloop.last %}, {% endif %} {% endif %} {% endfor %}
+        ]
+      };
+
+    ['airline', 'model', 'sub_model'].forEach(fieldName => {
+      const input = document.querySelector(`input[name="${fieldName}"]`);
+      if (!input) return;
+
+      const dataList = genericData[fieldName];
+
+      const wrapper = document.createElement('div');
+      wrapper.style.position = 'relative';
+      input.parentNode.insertBefore(wrapper, input);
+      wrapper.appendChild(input);
+
+      const list = document.createElement('ul');
+      list.style.position = 'absolute';
+      list.style.top = '100%';
+      list.style.left = '0';
+      list.style.width = '100%';
+      list.style.maxHeight = '200px';
+      list.style.overflowY = 'auto';
+      list.style.backgroundColor = '#fff';
+      list.style.border = '1px solid #ccc';
+      list.style.borderRadius = '4px';
+      list.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+      list.style.zIndex = '1000';
+      list.style.margin = '0';
+      list.style.padding = '0';
+      list.style.listStyle = 'none';
+      list.style.display = 'none';
+      wrapper.appendChild(list);
+
+      function updateList(query) {
+        list.innerHTML = '';
+        if (!query) {
+          list.style.display = 'none';
+          return;
+        }
+        query = query.toLowerCase();
+        let count = 0;
+        for (const item of dataList) {
+          if (item.toLowerCase().includes(query)) {
+            const li = document.createElement('li');
+            li.style.padding = '8px 12px';
+            li.style.cursor = 'pointer';
+            li.style.borderBottom = '1px solid #f0f0f0';
+            li.style.fontSize = '13px';
+            li.style.color = '#333';
+            li.style.display = 'flex';
+            li.style.alignItems = 'center';
+            li.style.gap = '8px';
+
+            const matchIndex = item.toLowerCase().indexOf(query);
+            let displayHTML = item;
+            if (matchIndex >= 0) {
+              const before = item.substring(0, matchIndex);
+              const match = item.substring(matchIndex, matchIndex + query.length);
+              const after = item.substring(matchIndex + query.length);
+              displayHTML = `${before}<strong>${match}</strong>${after}`;
+            }
+
+            let icon = '✈️';
+            if (fieldName === 'model' || fieldName === 'sub_model') icon = '⚙️';
+
+            li.innerHTML = `<span style="font-size:11px; opacity:0.7;">${icon}</span> <span>${displayHTML}</span>`;
+
+            li.addEventListener('mousedown', (e) => {
+              input.value = item;
+              list.style.display = 'none';
+              e.preventDefault();
+            });
+            li.addEventListener('mouseover', () => { li.style.backgroundColor = '#f5f5f5'; });
+            li.addEventListener('mouseout', () => { li.style.backgroundColor = 'transparent'; });
+
+            list.appendChild(li);
+            count++;
+            if (count > 50) break;
+          }
+        }
+        list.style.display = count > 0 ? 'block' : 'none';
+      }
+
+      input.addEventListener('input', (e) => updateList(e.target.value));
+      input.addEventListener('focus', (e) => updateList(e.target.value));
+      input.addEventListener('blur', () => { list.style.display = 'none'; });
+    });
+    });
+  </script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const modelInputOriginal = document.querySelector('input[name="model"]');
+      const subModelInputOriginal = document.querySelector('input[name="sub_model"]');
+      if (!modelInputOriginal || !subModelInputOriginal) return;
+
+      const modelOptions = JSON.parse(document.getElementById('model-list-data').textContent || '[]');
+      const rawModelSubmodelMap = JSON.parse(
+        document.getElementById('model-submodel-map').textContent || '{}'
+      );
+      const modelSubmodelMap = Object.fromEntries(
+        Object.entries(rawModelSubmodelMap).map(([model, submodels]) => [
+          model.trim().toLowerCase(),
+          Array.isArray(submodels) ? submodels : [],
+        ])
+      );
+
+      function resetAutocompleteInput(input) {
+        const parent = input.parentElement;
+        const clone = input.cloneNode(true);
+        clone.value = input.value;
+
+        if (parent && parent.tagName === 'DIV' && parent.querySelector('ul')) {
+          parent.innerHTML = '';
+          parent.appendChild(clone);
+          parent.style.position = 'relative';
+          return clone;
+        }
+
+        input.replaceWith(clone);
+        return clone;
+      }
+
+      function highlightMatch(text, query) {
+        if (!query) return text;
+        const matchIndex = text.toLowerCase().indexOf(query.toLowerCase());
+        if (matchIndex < 0) return text;
+
+        const before = text.substring(0, matchIndex);
+        const match = text.substring(matchIndex, matchIndex + query.length);
+        const after = text.substring(matchIndex + query.length);
+        return `${before}<strong>${match}</strong>${after}`;
+      }
+
+      function createAutocomplete(input, getItems, options = {}) {
+        if (!input) return { updateList() { }, hide() { } };
+
+        const wrapper = input.parentElement;
+        wrapper.style.position = 'relative';
+
+        const list = document.createElement('ul');
+        list.style.position = 'absolute';
+        list.style.top = '100%';
+        list.style.left = '0';
+        list.style.width = '100%';
+        list.style.maxHeight = '200px';
+        list.style.overflowY = 'auto';
+        list.style.backgroundColor = '#fff';
+        list.style.border = '1px solid #ccc';
+        list.style.borderRadius = '4px';
+        list.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+        list.style.zIndex = '1000';
+        list.style.margin = '0';
+        list.style.padding = '0';
+        list.style.listStyle = 'none';
+        list.style.display = 'none';
+        wrapper.appendChild(list);
+
+        function hide() {
+          list.style.display = 'none';
+        }
+
+        function updateList(query) {
+          list.innerHTML = '';
+          if (options.isDisabled && options.isDisabled()) {
+            hide();
+            return;
+          }
+
+          const items = (getItems(query) || []).filter(Boolean);
+          const normalizedQuery = (query || '').trim().toLowerCase();
+          const filteredItems = normalizedQuery
+            ? items.filter(item => item.toLowerCase().includes(normalizedQuery))
+            : items;
+
+          filteredItems.slice(0, 50).forEach(item => {
+            const li = document.createElement('li');
+            li.style.padding = '8px 12px';
+            li.style.cursor = 'pointer';
+            li.style.borderBottom = '1px solid #f0f0f0';
+            li.style.fontSize = '13px';
+            li.style.color = '#333';
+            li.innerHTML = highlightMatch(item, normalizedQuery);
+
+            li.addEventListener('mousedown', (e) => {
+              input.value = item;
+              hide();
+              if (typeof options.onSelect === 'function') {
+                options.onSelect(item);
+              }
+              e.preventDefault();
+            });
+            li.addEventListener('mouseover', () => { li.style.backgroundColor = '#f5f5f5'; });
+            li.addEventListener('mouseout', () => { li.style.backgroundColor = 'transparent'; });
+            list.appendChild(li);
+          });
+
+          list.style.display = list.childElementCount > 0 ? 'block' : 'none';
+        }
+
+        input.addEventListener('input', (e) => {
+          if (typeof options.onInput === 'function') {
+            options.onInput(e.target.value);
+          }
+          updateList(e.target.value);
+        });
+        input.addEventListener('focus', (e) => updateList(e.target.value));
+        input.addEventListener('blur', () => {
+          window.setTimeout(hide, 100);
+        });
+
+        return { updateList, hide };
+      }
+
+      const modelInput = resetAutocompleteInput(modelInputOriginal);
+      const subModelInput = resetAutocompleteInput(subModelInputOriginal);
+
+      function getSubModelOptions() {
+        return modelSubmodelMap[modelInput.value.trim().toLowerCase()] || [];
+      }
+
+      function syncSubModelState() {
+        const hasModel = !!modelInput.value.trim();
+        const knownOptions = hasModel ? getSubModelOptions() : [];
+
+        subModelInput.disabled = !hasModel;
+        subModelInput.style.backgroundColor = hasModel ? '#ffffff' : '#f3f4f6';
+        subModelInput.style.color = hasModel ? '#111827' : '#9ca3af';
+        subModelInput.style.cursor = hasModel ? 'text' : 'not-allowed';
+        subModelInput.placeholder = !hasModel
+          ? 'Fill model first'
+          : '';
+
+        if (!hasModel) {
+          subModelInput.value = '';
+        }
+      }
+
+      createAutocomplete(modelInput, () => modelOptions, {
+        onInput: syncSubModelState,
+        onSelect: syncSubModelState,
+      });
+
+      const subModelAutocomplete = createAutocomplete(subModelInput, () => getSubModelOptions(), {
+        isDisabled: () => !modelInput.value.trim(),
+      });
+
+      modelInput.addEventListener('change', () => {
+        syncSubModelState();
+        subModelAutocomplete.updateList(subModelInput.value);
+      });
+
+      syncSubModelState();
+    });
+  </script>
+  <div style="text-align:center;padding:24px 0 12px;font-size:10px;color:#282828;">
+    <a href="https://beian.miit.gov.cn/" target="_blank" style="color:#282828;text-decoration:none;">a114514</a>
+    <span style="margin:0 4px;">·</span>
+    <a href="https://beian.mps.gov.cn/#/query/webSearch?code=61011302001964" rel="noreferrer" target="_blank"
+      style="color:#282828;text-decoration:none;">陕公网安备6101130200****号</a>
+  </div>
+</body>
+
+</html>

@@ -1,0 +1,102 @@
+{% load static %}
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Manage Photos - MyJetCard</title>
+  <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
+  <link rel="stylesheet" href="{% static 'base.css' %}">
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="card">
+
+      <div class="topbar">
+        <a class="btn" href="/{{ user.username }}/">Home</a>
+        <h2 style="margin:0; flex:1;">Manage Photos</h2>
+        <form method="get" style="display:flex; gap:8px;">
+          <input type="text" name="q" value="{{ query }}" placeholder="Search ID, Reg, Airline..." 
+                 style="padding:6px 12px; border:1px solid #ddd; border-radius:6px; font-size:13px; width:220px;">
+          <button type="submit" class="btn">Search</button>
+        </form>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th style="width:50px;">ID</th>
+            <th style="width:80px;">Preview</th>
+            <th style="width:110px;">Reg</th>
+            <th>Model</th>
+            <th>Airline</th>
+            <th style="width:80px;">Airport</th>
+            <th style="width:110px;">Date</th>
+            <th style="width:160px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in photos %}
+          <tr>
+            <td class="muted">{{ p.id }}</td>
+            <td>
+              {% if p.image %}
+              <img class="thumb" src="{{ p.display_src_sm }}" alt="">
+              {% else %}
+              <img class="thumb" src="{{ p.src }}" alt="">
+              {% endif %}
+            </td>
+            <td style="font-weight:600; letter-spacing:0.03em;">{{ p.reg }}</td>
+            <td>{{ p.model }}</td>
+            <td>{{ p.airline }}</td>
+            <td>{{ p.airport }}</td>
+            <td class="muted">{{ p.date }}</td>
+            <td>
+              <div class="actions">
+                <a href="{% url 'photos_manage_edit' p.id %}">Edit</a>
+                <form method="post" action="{% url 'photos_manage_delete' p.id %}"
+                  onsubmit="return confirm('Confirm delete?');">
+                  {% csrf_token %}
+                  <button class="btn btn-danger" type="submit">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" class="muted" style="padding:24px; text-align:center;">No photos yet.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      {% if page_obj %}
+      <div class="pagination">
+        <span class="muted">
+          Page {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} &nbsp;·&nbsp; {{ page_obj.paginator.count }}
+          photos
+        </span>
+        {% if page_obj.has_previous %}
+        <a href="?page=1{% if query %}&q={{ query }}{% endif %}">« First</a>
+        <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">‹ Prev</a>
+        {% endif %}
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}">Next ›</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}">Last »</a>
+        {% endif %}
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+  <div style="text-align:center;padding:24px 0 12px;font-size:10px;color:#282828;">
+    <a href="https://beian.miit.gov.cn/" target="_blank" style="color:#282828;text-decoration:none;">a114514</a>
+    <span style="margin:0 4px;">·</span>
+    <a href="https://beian.mps.gov.cn/#/query/webSearch?code=61011302001964" rel="noreferrer" target="_blank"
+      style="color:#282828;text-decoration:none;">陕公网安备6101130200****号</a>
+  </div>
+</body>
+
+</html>

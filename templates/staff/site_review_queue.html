@@ -1,0 +1,294 @@
+{% load static %}
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Review Queue - MyJetCard</title>
+  <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
+  <link rel="stylesheet" href="{% static 'base.css' %}">
+  <style>
+    .wrap {
+      max-width: 1000px;
+      margin: 32px auto;
+      padding: 0 16px;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid #eee;
+      border-radius: 10px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      padding: 20px;
+      text-align: left;
+      margin-bottom: 16px;
+    }
+
+    .topbar {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: flex-start;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-block;
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      color: #0054a6;
+      text-decoration: none;
+    }
+
+    .btn:hover {
+      background: #f9f9f9;
+      text-decoration: underline;
+    }
+
+    .btn-success {
+      border-color: #28a745;
+      color: #fff;
+      background: #28a745;
+      text-decoration: none;
+    }
+
+    .btn-success:hover {
+      background: #218838;
+      text-decoration: none;
+    }
+
+    .btn-danger {
+      border-color: #dc3545;
+      color: #fff;
+      background: #dc3545;
+      text-decoration: none;
+    }
+
+    .btn-danger:hover {
+      background: #c82333;
+      text-decoration: none;
+    }
+
+    h2 {
+      margin: 6px 0 12px;
+    }
+
+    .photo-item {
+      display: flex;
+      gap: 20px;
+    }
+
+    .photo-item img {
+      width: 240px;
+      height: 160px;
+      object-fit: cover;
+      background: #000;
+      border-radius: 8px;
+    }
+
+    .photo-info {
+      flex: 1;
+    }
+
+    .photo-info .title {
+      font-weight: bold;
+      font-size: 16px;
+      margin-bottom: 4px;
+    }
+
+    .photo-info .meta {
+      font-size: 14px;
+      color: #555;
+      margin-bottom: 8px;
+    }
+
+    .photo-info .remarks {
+      font-size: 14px;
+      margin-bottom: 8px;
+      background: #fcfcfc;
+      padding: 8px;
+      border-left: 3px solid #eee;
+      color: #333;
+    }
+
+    .photo-info .gear {
+      font-size: 12px;
+      color: #888;
+    }
+
+    .actions {
+      margin-top: 12px;
+      display: flex;
+      gap: 8px;
+    }
+
+    .empty-state {
+      color: #666;
+      font-size: 14px;
+      font-style: italic;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <a class="btn" href="/{{ user.username }}/">Home</a>
+    </div>
+
+    <h2>Review Queue</h2>
+
+    <div id="list"></div>
+    <div id="pagination" class="pagination" style="margin-top:16px;"></div>
+  </div>
+
+  <script>
+    let currentPage = 1;
+
+    function getCsrf() {
+      const m = document.cookie.match(/csrftoken=([^;]+)/);
+      return m ? m[1] : "";
+    }
+
+    async function loadPending(page = 1) {
+      currentPage = page;
+      const r = await fetch(`/api/pending/?status=pending&page=${page}`);
+      const data = await r.json();
+      const list = document.getElementById("list");
+      list.innerHTML = "";
+
+      const items = data.results || [];
+      if (!items.length) {
+        list.innerHTML = `<div class="card empty-state">No pending items.</div>`;
+        document.getElementById("pagination").innerHTML = "";
+        return;
+      }
+
+      for (const p of items) {
+        const el = document.createElement("div");
+        el.className = "card photo-item";
+
+        let gearText = p.camera_name || "";
+        if (p.lens_name) {
+          gearText += gearText ? " | " + p.lens_name : p.lens_name;
+        }
+
+        // Build tag badges
+        const tagDefs = [
+          { key: 'featured', label: '⭐ Featured', color: '#856404', bg: '#fff3cd', border: '#ffeeba' },
+          { key: 'is_special_livery', label: '🎨 Special Livery', color: '#6f42c1', bg: '#f3e8ff', border: '#d8b4fe' },
+          { key: 'is_cargo', label: '📦 Cargo', color: '#e65100', bg: '#fff3e0', border: '#ffcc80' },
+          { key: 'is_bizjet', label: '💼 Biz Jet', color: '#1565c0', bg: '#e3f2fd', border: '#90caf9' },
+          { key: 'is_helicopter', label: '🚁 Helicopter', color: '#2e7d32', bg: '#e8f5e9', border: '#a5d6a7' },
+          { key: 'is_rare', label: '💎 Rare', color: '#c62828', bg: '#ffebee', border: '#ef9a9a' },
+        ];
+        const tagBadges = tagDefs
+          .filter(t => p[t.key])
+          .map(t => `<span style="display:inline-block;font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;background:${t.bg};color:${t.color};border:1px solid ${t.border};margin-right:4px;">${t.label}</span>`)
+          .join('');
+
+        el.innerHTML = `
+      <a href="${p.display_src}" target="_blank" title="Click to view full size">
+        <img src="${p.display_src_sm}" title="Click to view full size" />
+      </a>
+      <div class="photo-info">
+        <div class="title">${p.reg} &middot; ${p.model}${p.sub_model ? ' &middot; ' + p.sub_model : ''}</div>
+        <div class="meta">${p.airline} &middot; ${p.airport} &middot; ${p.date}</div>
+        ${tagBadges ? `<div style="margin:4px 0;">${tagBadges}</div>` : ""}
+        ${p.remarks ? `<div class="remarks">${p.remarks.replaceAll("<", "&lt;")}</div>` : ""}
+        <div class="gear">${gearText}</div>
+
+        <div class="actions">
+          <button class="btn btn-success" data-id="${p.id}" data-act="approve">Approve</button>
+          <button class="btn btn-danger" data-id="${p.id}" data-act="reject">Reject</button>
+          <a href="/manage/photos/pending/${p.id}/edit/" class="btn" style="color:#666;border-color:#eee;">Edit Info</a>
+        </div>
+      </div>
+    `;
+        list.appendChild(el);
+      }
+
+      // 渲染分页
+      const pg = document.getElementById("pagination");
+      pg.innerHTML = "";
+      const total = data.total_pages || 1;
+      const cur = data.page || 1;
+      const count = data.count || 0;
+
+      pg.innerHTML = `
+        <span class="muted">Page ${cur} / ${total} &nbsp;·&nbsp; ${count} items</span>
+        ${data.has_previous ? `<a href="#" onclick="loadPending(1);return false;">« First</a><a href="#" onclick="loadPending(${cur - 1});return false;">‹ Prev</a>` : ""}
+        ${data.has_next ? `<a href="#" onclick="loadPending(${cur + 1});return false;">Next ›</a><a href="#" onclick="loadPending(${total});return false;">Last »</a>` : ""}
+      `;
+    }
+
+    document.addEventListener("click", async (e) => {
+      const btn = e.target.closest("button[data-act]");
+      if (!btn || btn.disabled) return;
+      const id = btn.getAttribute("data-id");
+      const act = btn.getAttribute("data-act");
+
+      // Disable all action buttons for this photo
+      const card = btn.closest('.photo-card');
+      const allBtns = card ? card.querySelectorAll('button[data-act]') : [btn];
+      allBtns.forEach(b => { b.disabled = true; b.style.opacity = '0.6'; });
+      btn.textContent = act === 'approve' ? 'Approving...' : 'Rejecting...';
+
+      try {
+        if (act === "approve") {
+          const r = await fetch(`/api/pending/${id}/approve/`, {
+            method: "POST",
+            headers: { "X-CSRFToken": getCsrf() },
+          });
+          if (!r.ok) {
+            alert("approve failed");
+            allBtns.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+            btn.textContent = 'Approve';
+            return;
+          }
+          await loadPending(currentPage);
+        }
+
+        if (act === "reject") {
+          const note = prompt("Reject reason (optional):");
+          if (note === null) {
+            allBtns.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+            btn.textContent = 'Reject';
+            return;
+          }
+          const r = await fetch(`/api/pending/${id}/reject/`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrf() },
+            body: JSON.stringify({ note }),
+          });
+          if (!r.ok) {
+            alert("reject failed");
+            allBtns.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+            btn.textContent = 'Reject';
+            return;
+          }
+          await loadPending(currentPage);
+        }
+      } catch (err) {
+        alert("Network error: " + err.message);
+        allBtns.forEach(b => { b.disabled = false; b.style.opacity = '1'; });
+        btn.textContent = act === 'approve' ? 'Approve' : 'Reject';
+      }
+    });
+
+    loadPending(1);
+  </script>
+  <div style="text-align:center;padding:24px 0 12px;font-size:10px;color:#282828;">
+    <a href="https://beian.miit.gov.cn/" target="_blank" style="color:#282828;text-decoration:none;">a114514</a>
+    <span style="margin:0 4px;">·</span>
+    <a href="https://beian.mps.gov.cn/#/query/webSearch?code=61011302001964" rel="noreferrer" target="_blank"
+      style="color:#282828;text-decoration:none;">陕公网安备6101130200****号</a>
+  </div>
+</body>
+
+</html>

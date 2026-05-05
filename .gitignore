@@ -1,0 +1,32 @@
+# 数据库
+db.sqlite3
+
+# 用户上传的媒体文件
+media/
+
+# collectstatic 生成目录
+staticfiles/
+
+# 日志
+nohup.out
+logs/
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+*.pyo
+
+# 环境变量
+.env
+local_settings.py
+
+# 一次性脚本
+convert_to_webp.py
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/

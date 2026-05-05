@@ -1,0 +1,356 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to MyJetCard</title>
+    <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+
+        body {
+            background-color: #ECECEC;
+            color: #333;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        :root {
+            /* 飞机位置偏移 */
+            --plane-offset-x: 15vw;
+            --plane-offset-y: -14vh;
+
+            /* 飞机浮动动画时长（plane-bob 和 counter-plane-bob 必须一致） */
+            --bob-duration: 12s;
+
+            /* 云影效果 */
+            --shadow-opacity: 0.6;
+            /* 云影不透明度 */
+            --shadow-blur: 35px;
+            /* 云影模糊半径 */
+            --shadow-offset-x: 7vw;
+            /* 云影水平偏移（正值=右） */
+            --shadow-offset-y: 5vh;
+            /* 云影垂直偏移（正值=下） */
+
+            /* 飞机大小 */
+            --plane-scale: 0.85;
+        }
+
+        .animation-scene {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .anim-bg {
+            position: absolute;
+            inset: 0;
+            background: url('{% static "background.jpg" %}') center / cover no-repeat;
+            z-index: 1;
+        }
+
+        .plane-wrapper {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 3;
+            pointer-events: none;
+            transform: translate(var(--plane-offset-x), var(--plane-offset-y));
+        }
+
+        .plane-group {
+            position: relative;
+            width: min(40vw, 500px);
+            animation: plane-bob var(--bob-duration) ease-in-out infinite;
+        }
+
+        .plane-image {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        @keyframes plane-bob {
+
+            0%,
+            100% {
+                transform: scale(var(--plane-scale)) translateY(0) rotate(0deg);
+            }
+
+            33% {
+                transform: scale(var(--plane-scale)) translateY(-20px) rotate(1.5deg);
+            }
+
+            66% {
+                transform: scale(var(--plane-scale)) translateY(20px) rotate(-1.5deg);
+            }
+        }
+
+        @keyframes counter-plane-bob {
+
+            0%,
+            100% {
+                transform: translateY(0) scale(calc(1 / var(--plane-scale)));
+            }
+
+            33% {
+                transform: rotate(-1.5deg) translateY(20px) scale(calc(1 / var(--plane-scale)));
+            }
+
+            66% {
+                transform: rotate(1.5deg) translateY(-20px) scale(calc(1 / var(--plane-scale)));
+            }
+        }
+
+        .shadow-mask {
+            position: absolute;
+            inset: 0;
+            -webkit-mask: url('{% static "plane.png" %}') center / 100% 100% no-repeat;
+            mask: url('{% static "plane.png" %}') center / 100% 100% no-repeat;
+            mix-blend-mode: multiply;
+            pointer-events: none;
+        }
+
+        .shadow-fullscreen {
+            position: absolute;
+            width: 100vw;
+            height: 100vh;
+            left: 0;
+            top: 0;
+            animation: counter-plane-bob var(--bob-duration) ease-in-out infinite;
+        }
+
+        .cloud-layer,
+        .shadow-fullscreen {
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .cloud-layer {
+            position: absolute;
+            inset: 0;
+            z-index: 4;
+        }
+
+        .cloud {
+            position: absolute;
+            right: 0;
+            top: var(--y);
+            height: auto;
+            opacity: var(--alpha);
+            will-change: transform;
+            animation: drift calc(var(--dur) * 1s) linear infinite;
+            animation-delay: calc(var(--delay) * 1s);
+        }
+
+        @keyframes drift {
+            from {
+                transform: translateX(calc(100% + 20vw)) scale(var(--scale, 0.5));
+            }
+
+            to {
+                transform: translateX(calc(-100vw - 100% - 20vw)) scale(var(--scale, 0.5));
+            }
+        }
+
+        .shadow-fullscreen .cloud {
+            filter: brightness(0) blur(var(--shadow-blur));
+            opacity: calc(var(--alpha) * var(--shadow-opacity));
+        }
+    </style>
+</head>
+
+<body class="min-h-screen flex flex-col">
+
+    <main class="flex-grow flex items-center justify-center relative overflow-hidden text-white px-4">
+        <div class="animation-scene">
+            <div class="anim-bg"></div>
+            <div class="cloud-layer" id="under-cloud-container" style="z-index: 2;"></div>
+            <div class="plane-wrapper">
+                <div class="plane-group">
+                    <img class="plane-image" src="{% static 'plane.png' %}" alt="Plane"
+                        style="position: relative; z-index: 2;">
+                    <div class="shadow-mask" style="z-index: 3;">
+                        <div class="shadow-fullscreen" id="shadow-container"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="cloud-layer" id="cloud-container"></div>
+        </div>
+
+        <!-- Brand moved to Top-Left -->
+        <div class="absolute top-10 left-10 z-10 select-none flex items-center gap-4">
+            <h1 class="text-xl md:text-3xl font-extrabold tracking-tight italic text-white drop-shadow-sm">
+                My<span class="text-blue-400">JetCard</span>
+            </h1>
+            {% if not user.is_authenticated %}
+            <a href="/accounts/login/"
+                class="text-white/40 hover:text-white transition-colors text-[10px] tracking-normal">Sign In</a>
+            {% else %}
+            <form method="post" action="{% url 'logout' %}" class="inline">
+                {% csrf_token %}
+                <button type="submit"
+                    class="text-white/40 hover:text-white transition-colors text-[10px] tracking-normal border-none bg-transparent p-0 cursor-pointer">Sign
+                    Out</button>
+            </form>
+            {% endif %}
+        </div>
+
+        <!-- Center Button -->
+        <div class="relative z-10">
+            {% if user.is_authenticated %}
+            <a href="/{{ user.username }}/"
+                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full text-sm uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-lg flex items-center justify-center group">
+                <i class="fa fa-camera-retro mr-2 group-hover:rotate-12 transition-transform"></i>
+                <span>Go to My Gallery</span>
+            </a>
+            {% endif %}
+        </div>
+        </div>
+    </main>
+
+    <footer class="absolute bottom-0 w-full text-white/50 text-center py-6 text-xs uppercase tracking-widest z-20">
+        <p>2026 MyJetCard. Presented by jxclbx.</p>
+        <div class="mt-2 normal-case text-[10px] tracking-normal">
+            <a href="https://beian.miit.gov.cn/" target="_blank" class="hover:text-white transition-colors">a114514</a>
+            <span class="mx-1">·</span>
+            <a href="https://beian.mps.gov.cn/#/query/webSearch?code=61011302001964" rel="noreferrer" target="_blank"
+                class="hover:text-white transition-colors">陕公网安备6101130200****号</a>
+        </div>
+    </footer>
+
+    <script>
+        const staticBase = "{% static '' %}";
+
+        const cloudsConfig = [
+            { src: staticBase + 'cloud/cloud1.png', dur: 130, delay: -5, scale: 0.75, alpha: 0.85, y: '8vh' },
+            { src: staticBase + 'cloud/cloud1.png', dur: 200, delay: -5, scale: 0.50, alpha: 0.87, y: '28vh' },
+            { src: staticBase + 'cloud/cloud2.png', dur: 170, delay: -22, scale: 0.50, alpha: 1.0, y: '40vh' },
+            { src: staticBase + 'cloud/cloud3.png', dur: 160, delay: -24, scale: 0.50, alpha: 0.75, y: '40vh' },
+            { src: staticBase + 'cloud/cloud5.png', dur: 136, delay: -25, scale: 0.60, alpha: 1.0, y: '25vh' },
+            { src: staticBase + 'cloud/cloud7.png', dur: 120, delay: -35, scale: 0.80, alpha: 1.0, y: '61vh' },
+            { src: staticBase + 'cloud/cloud8.png', dur: 160, delay: -15, scale: 0.95, alpha: 0.80, y: '7vh' },
+            { src: staticBase + 'cloud/cloud9.png', dur: 140, delay: -45, scale: 0.60, alpha: 1.0, y: '46vh' },
+            { src: staticBase + 'cloud/cloud9.png', dur: 140, delay: -45, scale: 0.40, alpha: 1.0, y: '9vh' },
+        ];
+
+        const underCloudsConfig = [
+            { src: staticBase + 'cloud/cloud4.png', dur: 95, delay: -8, scale: 0.6, alpha: 1.0, y: '70vh' },
+            { src: staticBase + 'cloud/cloud6.png', dur: 115, delay: -40, scale: 0.3, alpha: 1.0, y: '55vh' },
+            { src: staticBase + 'cloud/cloud8.png', dur: 85, delay: -20, scale: 0.3, alpha: 1.0, y: '50vh' },
+            { src: staticBase + 'cloud/cloud1.png', dur: 105, delay: -55, scale: 0.3, alpha: 1.0, y: '35vh' },
+        ];
+
+        const shadowContainer = document.getElementById('shadow-container');
+        const cloudContainer = document.getElementById('cloud-container');
+        const underCloudContainer = document.getElementById('under-cloud-container');
+
+        function buildStyle(cfg, delay) {
+            return `--dur:${cfg.dur}; --delay:${delay}; --alpha:${cfg.alpha}; --y:${cfg.y}; --scale:${cfg.scale};`;
+        }
+
+        function createForegroundCloud(cfg, timeOffset) {
+            const delay = cfg.delay - timeOffset;
+            const css = buildStyle(cfg, delay);
+
+            const shadow = document.createElement('img');
+            shadow.className = 'cloud';
+            shadow.src = cfg.src;
+            shadow.style.cssText = css;
+            shadowContainer.appendChild(shadow);
+
+            const cloud = document.createElement('img');
+            cloud.className = 'cloud';
+            cloud.src = cfg.src;
+            cloud.style.cssText = css;
+            cloudContainer.appendChild(cloud);
+        }
+
+        function createUnderCloud(cfg, timeOffset) {
+            const delay = cfg.delay - timeOffset;
+            const css = buildStyle(cfg, delay);
+
+            const cloud = document.createElement('img');
+            cloud.className = 'cloud';
+            cloud.src = cfg.src;
+            cloud.style.cssText = css;
+            underCloudContainer.appendChild(cloud);
+        }
+
+        cloudsConfig.forEach(cfg => {
+            const randY = () => `calc(${cfg.y} + ${Math.random() * 10 - 10}vh)`;
+            createForegroundCloud({ ...cfg, y: randY() }, 0);
+            createForegroundCloud({ ...cfg, y: randY() }, cfg.dur / 2);
+            createForegroundCloud({ ...cfg, y: randY() }, cfg.dur / 3);
+        });
+
+        underCloudsConfig.forEach(cfg => {
+            createUnderCloud(cfg, 0);
+            createUnderCloud(cfg, cfg.dur / 2);
+        });
+
+        function alignShadow() {
+            const sf = document.getElementById('shadow-container');
+            const planeGroup = document.querySelector('.plane-group');
+            if (!sf || !planeGroup) return;
+
+            const savedPlaneAnim = planeGroup.style.animation;
+            const savedSfAnim = sf.style.animation;
+            planeGroup.style.animation = 'none';
+            sf.style.animation = 'none';
+            sf.style.left = '0px';
+            sf.style.top = '0px';
+            sf.style.transformOrigin = '0 0';
+            void sf.offsetHeight; // force reflow
+
+            const rect = sf.getBoundingClientRect();
+            const style = getComputedStyle(document.documentElement);
+
+            function parseCssLength(varName) {
+                const raw = style.getPropertyValue(varName).trim();
+                const val = parseFloat(raw) || 0;
+                const unit = raw.replace(/[\d.\-]/g, '').trim();
+                if (unit === 'vw') return val * window.innerWidth / 100;
+                if (unit === 'vh') return val * window.innerHeight / 100;
+                return val;
+            }
+
+            const ox = parseCssLength('--shadow-offset-x');
+            const oy = parseCssLength('--shadow-offset-y');
+
+            sf.style.left = (-rect.left + ox) + 'px';
+            sf.style.top = (-rect.top + oy) + 'px';
+
+            const pr = planeGroup.getBoundingClientRect();
+            sf.style.transformOrigin =
+                (pr.left + pr.width / 2) + 'px ' +
+                (pr.top + pr.height / 2) + 'px';
+
+            void sf.offsetHeight;
+            if (savedPlaneAnim) planeGroup.style.animation = savedPlaneAnim;
+            else planeGroup.style.removeProperty('animation');
+            if (savedSfAnim) sf.style.animation = savedSfAnim;
+            else sf.style.removeProperty('animation');
+        }
+
+        requestAnimationFrame(() => requestAnimationFrame(alignShadow));
+        window.addEventListener('resize', () => requestAnimationFrame(alignShadow));
+    </script>
+</body>
+
+</html>

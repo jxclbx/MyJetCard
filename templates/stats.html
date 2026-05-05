@@ -1,0 +1,304 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{view_user.username}}'s Stats - MyJetCard</title>
+    <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script>window.SITE_USER = "{{ view_user.username }}";</script>
+    <style>
+        * {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+        }
+
+        body {
+            background-color: #ECECEC;
+            color: #333;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+
+
+        .jet-card {
+            background: white;
+            border-radius: 2px;
+            border: 1px solid #ddd;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        .section-title {
+            font-size: 0.875rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            border-left: 4px solid #282828;
+            padding-left: 0.75rem;
+            color: #444;
+        }
+
+        /* 统一的高级下拉菜单样式 */
+        .custom-select {
+            appearance: none;
+            background-color: transparent;
+            border: none;
+            cursor: pointer;
+            padding-right: 1.2rem;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right center;
+            background-size: 0.8em;
+        }
+
+        .custom-select:focus {
+            outline: none;
+        }
+
+        /* 针对表格的微调 */
+        .rank-table th {
+            color: #999;
+            font-size: 10px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #eee;
+            padding: 8px 4px;
+        }
+
+        .rank-table td {
+            font-size: 11px;
+            padding: 8px 4px;
+            border-bottom: 1px solid #f9f9f9;
+        }
+    </style>
+</head>
+
+<body class="pb-20">
+
+    <nav class="bg-[#282828] text-white shadow-md relative">
+        <!-- ✅ 电脑端：完全保留你原来的结构/样式 -->
+        <div class="w-full h-[52px] flex justify-between items-center px-10">
+            <div class="flex items-baseline space-x-3">
+                <a href="/" class="text-xl font-bold tracking-tighter italic hover:opacity-90 transition">
+                    My<span class="text-blue-500">JetCard</span>
+                </a>
+                {% if user.is_authenticated %}
+                <span class="text-[10px] text-gray-400 font-normal tracking-wide hidden sm:inline">
+                    Logged in as {{ user.username }}
+                </span>
+                {% endif %}
+            </div>
+
+            <div class="flex items-center space-x-10">
+                <!-- 电脑端菜单：保持原样（md及以上显示） -->
+                <div class="space-x-8 text-xs uppercase tracking-widest font-bold hidden md:flex">
+                    <a href="/{{ view_user.username }}/" class="text-white hover:text-blue-300 transition">Home</a>
+                    <a href="/{{ view_user.username }}/gallery/"
+                        class="text-white hover:text-blue-300 transition">Photos</a>
+                    <a href="/{{ view_user.username }}/stats/" class="text-blue-400">Stats</a>
+                </div>
+
+                <div class="relative flex items-center">
+                    <input type="text" id="nav-search-input" placeholder="Search Reg..."
+                        class="bg-white text-black text-[11px] px-3 py-1.5 w-32 md:w-44 rounded-sm focus:outline-none placeholder-gray-400 font-sans">
+                    <button onclick="performNavSearch()"
+                        class="absolute right-2 text-gray-400 hover:text-blue-500 transition">
+                        <i class="fa fa-search text-xs"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ✅ 手机端：另起一行显示菜单（md以下显示） -->
+        <div class="md:hidden w-full px-4 pb-3">
+            <div class="flex justify-center space-x-8 text-xs uppercase tracking-widest font-bold">
+                <a href="/{{ view_user.username }}/" class="text-white hover:text-blue-300 transition">Home</a>
+                <a href="/{{ view_user.username }}/gallery/"
+                    class="text-white hover:text-blue-300 transition">Photos</a>
+                <a href="/{{ view_user.username }}/stats/" class="text-blue-400">Stats</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-6xl mx-auto px-4 mt-8">
+
+        <h3 class="section-title mb-8">Advanced Filter</h3>
+        <section class="jet-card p-8 mb-10">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="relative">
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Airline</label>
+                    <input type="text" id="select-airline" placeholder="Any Airline" autocomplete="off"
+                        class="w-full bg-gray-50 border border-gray-300 text-sm p-1.5 rounded-sm focus:ring-blue-500 focus:border-blue-500 outline-none pr-8"
+                        style="background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%239ca3af%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpolyline points=%226 9 12 15 18 9%22%3E%3C/polyline%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1em;">
+                </div>
+                <div class="relative">
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Airport</label>
+                    <input type="text" id="select-airport" placeholder="Any Airport" autocomplete="off"
+                        class="w-full bg-gray-50 border border-gray-300 text-sm p-1.5 rounded-sm focus:ring-blue-500 focus:border-blue-500 outline-none pr-8"
+                        style="background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%239ca3af%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpolyline points=%226 9 12 15 18 9%22%3E%3C/polyline%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1em;">
+                </div>
+                <div class="relative">
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Aircraft Type</label>
+                    <input type="text" id="select-model" placeholder="Any Type" autocomplete="off"
+                        class="w-full bg-gray-50 border border-gray-300 text-sm p-1.5 rounded-sm focus:ring-blue-500 focus:border-blue-500 outline-none pr-8"
+                        style="background-image: url('data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%239ca3af%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpolyline points=%226 9 12 15 18 9%22%3E%3C/polyline%3E%3C/svg%3E'); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 1em;">
+                </div>
+            </div>
+            <!-- Tag Filters Row -->
+            <div class="grid grid-cols-2 md:grid-cols-6 gap-4 mt-6 pt-5 border-t border-gray-100">
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Featured</label>
+                    <select id="select-featured"
+                        class="w-full bg-gray-50 border border-gray-300 text-sm p-1.5 rounded-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Both</option>
+                        <option value="true">NB</option>
+                        <option value="false">Not NB</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Special Livery</label>
+                    <select id="select-is_special_livery"
+                        class="w-full bg-gray-50 border border-gray-300 text-sm p-1.5 rounded-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Both</option>
+                        <option value="true">Special Livery Only</option>
+                        <option value="false">Not Special Livery</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Cargo</label>
+                    <select id="select-is_cargo"
+                        class="w-full bg-gray-50 border border-gray-300 text-sm p-1.5 rounded-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Both</option>
+                        <option value="true">Cargo Only</option>
+                        <option value="false">Not Cargo</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Business Jet</label>
+                    <select id="select-is_bizjet"
+                        class="w-full bg-gray-50 border border-gray-300 text-sm p-1.5 rounded-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Both</option>
+                        <option value="true">Business Jet Only</option>
+                        <option value="false">Not Business Jet</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Helicopter</label>
+                    <select id="select-is_helicopter"
+                        class="w-full bg-gray-50 border border-gray-300 text-sm p-1.5 rounded-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Both</option>
+                        <option value="true">Helicopter Only</option>
+                        <option value="false">Not Helicopter</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-[10px] font-bold text-gray-500 uppercase mb-2">Rare</label>
+                    <select id="select-is_rare"
+                        class="w-full bg-gray-50 border border-gray-300 text-sm p-1.5 rounded-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Both</option>
+                        <option value="true">Rare Only</option>
+                        <option value="false">làn sú</option>
+                    </select>
+                </div>
+            </div>
+            <div class="mt-8 flex justify-end">
+                <button onclick="applyFilters()"
+                    class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold py-3 px-10 rounded-sm transition uppercase tracking-widest shadow-lg">
+                    Show Results
+                </button>
+            </div>
+        </section>
+
+        <section class="space-y-10">
+            <h3 class="section-title mb-6">Database Statistics</h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="jet-card p-6">
+                    <div class="text-[10px] font-bold text-gray-400 mb-4 uppercase tracking-widest">Yearly Activity
+                    </div>
+                    <div id="chart-yearly" class="w-full h-[300px]"></div>
+                </div>
+                <div class="jet-card p-6">
+                    <div class="text-[10px] font-bold text-gray-400 mb-4 uppercase tracking-widest flex items-center">
+                        Monthly Distribution (
+                        <select id="monthly-year-select" class="custom-select text-blue-600 font-bold ml-1">
+                        </select>
+                        )
+                    </div>
+                    <div id="chart-monthly" class="w-full h-[300px]"></div>
+                </div>
+            </div>
+
+            <div class="jet-card p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Shooting Calendar</div>
+                    <div class="flex items-center">
+                        <span class="text-[10px] font-bold text-black uppercase mr-3">choose</span>
+                        <select id="heatmap-year-select" class="custom-select text-blue-600 font-bold text-xs"></select>
+                    </div>
+                </div>
+                <div id="chart-heatmap" class="w-full h-[180px]"></div>
+            </div>
+
+            <div class="jet-card p-6">
+                <div class="text-[10px] font-bold text-gray-400 mb-6 uppercase tracking-widest">Airline Distribution
+                </div>
+                <div class="flex flex-col md:flex-row gap-8">
+                    <div id="chart-airline" class="w-full md:w-1/2 h-[400px]"></div>
+                    <div class="w-full md:w-1/2 overflow-auto">
+                        <table class="w-full rank-table">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Airline</th>
+                                    <th class="text-right">Count</th>
+                                    <th class="text-right">%</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-airline"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="jet-card p-6">
+                    <div class="text-[10px] font-bold text-gray-400 mb-4 uppercase tracking-widest">Aircraft Types</div>
+                    <div id="chart-model" class="w-full h-[300px] mb-4"></div>
+                    <table class="w-full rank-table">
+                        <tbody id="table-model"></tbody>
+                    </table>
+                </div>
+                <div class="jet-card p-6">
+                    <div class="text-[10px] font-bold text-gray-400 mb-4 uppercase tracking-widest">Airports</div>
+                    <div id="chart-airport" class="w-full h-[300px] mb-4"></div>
+                    <table class="w-full rank-table">
+                        <tbody id="table-airport"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    {% if request.user == view_user and view_user.site_profile.show_perf_panel %}
+    <script src="{% static 'perf.js' %}?v=1.0"></script>
+    {% endif %}
+    <script src="{% static 'airport-data.js' %}?v=1.0" defer></script>
+    <script src="{% static 'stats.js' %}?v=1.3" defer></script>
+    <div style="text-align:center;padding:24px 0 12px;font-size:10px;color:#282828;">
+        <a href="https://beian.miit.gov.cn/" target="_blank" style="color:#282828;text-decoration:none;">a114514</a>
+        <span style="margin:0 4px;">·</span>
+        <a href="https://beian.mps.gov.cn/#/query/webSearch?code=61011302001964" rel="noreferrer" target="_blank"
+            style="color:#282828;text-decoration:none;">陕公网安备6101130200****号</a>
+    </div>
+</body>
+
+</html>

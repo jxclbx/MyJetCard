@@ -1,0 +1,328 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{view_user.username}} - MyJetCard</title>
+  <link rel="icon" type="image/x-icon" href="{% static 'favicon.ico' %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <script>
+    window.SITE_USER = "{{ view_user.username|escapejs }}";
+    window.LOGGED_IN_USER = {% if user.is_authenticated %}"{{ user.username|escapejs }}"{% else %} null{% endif %};
+  </script>
+  <style>
+    * {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: optimizeLegibility;
+    }
+
+    body {
+      background-color: #ECECEC;
+      color: #333;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+
+    .jet-card {
+      background: white;
+      border-radius: 0px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    #map {
+      background: #f0f0f0;
+    }
+
+    .stat-value {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-weight: 700;
+      color: #282828;
+    }
+
+    .section-title {
+      font-size: 0.875rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      border-left: 4px solid #282828;
+      padding-left: 0.75rem;
+      color: #444;
+    }
+
+    .sort-btn {
+      padding: 4px 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #fff;
+      color: #666;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-family: 'Inter', system-ui, sans-serif;
+    }
+
+    .sort-btn:hover {
+      border-color: #999;
+      color: #333;
+    }
+
+    .sort-btn.active {
+      background: #282828;
+      color: #fff;
+      border-color: #282828;
+    }
+  </style>
+</head>
+
+<body class="pb-20">
+
+  <nav class="bg-[#282828] text-white shadow-md relative">
+    <!-- PC -->
+    <div class="w-full h-[52px] flex justify-between items-center px-10">
+      <div class="flex items-baseline space-x-3">
+        <a href="/" class="text-xl font-bold tracking-tighter italic hover:opacity-90 transition">
+          My<span class="text-blue-500">JetCard</span>
+        </a>
+        {% if user.is_authenticated %}
+        <span class="text-[10px] text-gray-400 font-normal tracking-wide hidden sm:inline">
+          Logged in as {{ user.username }}
+        </span>
+        {% endif %}
+      </div>
+
+      <div class="flex items-center space-x-10">
+        <div class="space-x-8 text-xs uppercase tracking-widest font-bold hidden md:flex">
+          <a href="/{{ view_user.username }}/" class="text-blue-400">Home</a>
+          <a href="/{{ view_user.username }}/gallery/" class="text-white hover:text-blue-300 transition">Photos</a>
+          <a href="/{{ view_user.username }}/stats/" class="text-white hover:text-blue-300 transition">Stats</a>
+        </div>
+
+        <div class="relative flex items-center">
+          <input type="text" id="nav-search-input" placeholder="Search Reg..."
+            class="bg-white text-black text-[11px] px-3 py-1.5 w-32 md:w-44 rounded-sm focus:outline-none placeholder-gray-400 font-sans">
+          <button onclick="performNavSearch()" class="absolute right-2 text-gray-400 hover:text-blue-500 transition">
+            <i class="fa fa-search text-xs"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile -->
+    <div class="md:hidden w-full px-4 pb-3">
+      <div class="flex justify-center space-x-8 text-xs uppercase tracking-widest font-bold">
+        <a href="/{{ view_user.username }}/" class="text-blue-400">Home</a>
+        <a href="/{{ view_user.username }}/gallery/" class="text-white hover:text-blue-300 transition">Photos</a>
+        <a href="/{{ view_user.username }}/stats/" class="text-white hover:text-blue-300 transition">Stats</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ✅ banner 加 id，保留默认图做 fallback -->
+  <div id="site-banner" class="relative h-36 md:h-44 w-full bg-cover bg-center border-b border-gray-300"
+    style="background-image: url('https://picsum.photos/seed/3/1920/600');">
+    <div class="absolute inset-0 bg-black/40"></div>
+
+    <div class="absolute bottom-6 md:bottom-8 left-8 flex items-end space-x-6 text-white">
+      <div class="relative">
+        <!-- ✅ avatar img 加 id -->
+        <button id="user-avatar-btn" type="button"
+          data-authed="{% if user.is_authenticated and user.username == view_user.username %}true{% else %}false{% endif %}"
+          class="w-24 h-24 border-4 border-white/30 rounded-sm shadow-xl overflow-hidden{% if not user.is_authenticated or user.username != view_user.username %} cursor-default{% endif %}">
+          <img id="site-avatar" src="https://picsum.photos/seed/3/100/100" class="w-full h-full object-cover"
+            alt="avatar">
+        </button>
+
+        {% if user.is_authenticated and user.username == view_user.username %}
+        <div id="user-menu"
+          class="hidden absolute top-[104px] left-0 z-50 w-44 bg-white text-black rounded-sm shadow-xl border border-gray-200 overflow-hidden">
+          <a href="/manage/site/" class="block px-4 py-3 text-xs font-bold hover:bg-gray-100">
+            <i class="fa fa-cog mr-2 text-gray-500"></i> Profile Settings
+          </a>
+          <a href="/manage/photos/add/" class="block px-4 py-3 text-xs font-bold hover:bg-gray-100">
+            <i class="fa fa-plus mr-2 text-gray-500"></i> Add Photo
+          </a>
+          <a href="/manage/photos/" class="block px-4 py-3 text-xs font-bold hover:bg-gray-100">
+            <i class="fa fa-images mr-2 text-gray-500"></i> Manage Photos
+          </a>
+          <a href="/manage/photos/pending/" class="block px-4 py-3 text-xs font-bold hover:bg-gray-100">
+            <i class="fa fa-clock mr-2 text-gray-500"></i> Pending Photos
+          </a>
+          {% if user.is_staff %}
+          <a href="/manage/review/" class="block px-4 py-3 text-xs font-bold hover:bg-gray-100 text-blue-800">
+            <i class="fa fa-eye mr-2"></i> Screen Photos
+          </a>
+          <a href="/admin/" class="block px-4 py-3 text-xs font-bold hover:bg-gray-100 text-blue-800">
+            <i class="fa fa-database mr-2"></i> Database Admin
+          </a>
+          {% endif %}
+          <form method="post" action="{% url 'logout' %}" class="block w-full text-left">
+            {% csrf_token %}
+            <button type="submit" class="w-full text-left px-4 py-3 text-xs font-bold text-red-600 hover:bg-red-50">
+              <i class="fa fa-sign-out-alt mr-2"></i> Logout
+            </button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+
+      <div>
+        <h1 id="site-display-name" class="text-4xl font-bold italic tracking-tighter drop-shadow-md">
+          {{ view_user.username }}
+        </h1>
+
+        <p class="text-xs opacity-90 mt-1 uppercase tracking-widest font-semibold">
+          Total Photos: <span id="total-count" class="text-blue-400">0</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <main class="max-w-7xl mx-auto mt-8 grid grid-cols-1 md:grid-cols-12 gap-8 px-4">
+    <aside class="hidden md:block md:col-span-3 space-y-6">
+      <div class="jet-card p-6">
+        <h3 class="text-[11px] font-black border-b border-gray-100 pb-3 mb-6 text-gray-400 uppercase tracking-widest">
+          Photographer Info</h3>
+        <div id="gear-list" class="text-[11px]"></div>
+        <div id="profile-prompt" class="hidden mt-4 bg-blue-50/70 border border-blue-200 rounded p-3 shadow-sm">
+          <p class="text-xs text-blue-800 font-medium leading-relaxed">
+            <i class="fa fa-info-circle mr-1"></i>
+            Welcome! Click your avatar in the top left to open the menu and complete your profile settings (Location,
+            Hobbies, Cameras).
+          </p>
+        </div>
+      </div>
+    </aside>
+
+    <section class="md:col-span-9 space-y-8">
+      <div>
+        <h3 class="section-title mb-4">Editor's Picks</h3>
+        <div id="pinned-grid" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
+      </div>
+
+      <!-- Mobile Photographer Info inserted after Editor Picks on small screens -->
+      <div class="md:hidden">
+        <div class="jet-card p-6">
+          <h3 class="text-[11px] font-black border-b border-gray-100 pb-3 mb-6 text-gray-400 uppercase tracking-widest">
+            Photographer Info</h3>
+          <div id="gear-list-mobile" class="text-[11px]"></div>
+        </div>
+      </div>
+
+      <div class="flex flex-col md:flex-row gap-4">
+        <!-- Stat Cards -->
+        <div class="order-1 md:order-2 w-full md:w-64 md:h-[432px]">
+          <div class="grid grid-cols-3 md:flex md:flex-col md:h-full gap-4">
+            <div class="jet-card p-5 flex flex-col justify-center text-center md:flex-1">
+              <div id="count-airlines" class="stat-value text-2xl mb-1">0</div>
+              <div class="text-[9px] uppercase text-gray-500 font-bold tracking-widest">Airlines</div>
+            </div>
+            <div class="jet-card p-5 flex flex-col justify-center text-center md:flex-1">
+              <div id="count-airports" class="stat-value text-2xl mb-1">0</div>
+              <div class="text-[9px] uppercase text-gray-500 font-bold tracking-widest">Airports</div>
+            </div>
+            <div class="jet-card p-5 flex flex-col justify-center text-center md:flex-1">
+              <div id="count-regs" class="stat-value text-2xl mb-1">0</div>
+              <div class="text-[9px] uppercase text-gray-500 font-bold tracking-widest">Registrations</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Map -->
+        <div class="order-2 md:order-1 jet-card flex-1">
+          <div class="p-2 bg-gray-50 text-[9px] font-bold uppercase tracking-widest border-b border-gray-100 italic">
+            Airport Footprints Map</div>
+          <div id="map" class="h-[320px] md:h-[402px] w-full"></div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="jet-card h-80 p-4" id="chart-growth"></div>
+        <div class="jet-card h-80 p-4" id="chart-airline"></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="max-w-7xl mx-auto px-4 mt-16 space-y-16">
+    <section>
+      <div class="flex justify-between items-center mb-6">
+        <h3 class="section-title">Featured Photos</h3>
+        <a href="/{{ view_user.username }}/gallery/?featured=true"
+          class="text-[10px] font-bold text-blue-600 hover:text-blue-800 transition">VIEW ALL FEATURED →</a>
+      </div>
+      <div id="featured-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+    </section>
+
+    <section>
+      <h3 class="section-title mb-6" style="border-left-color: #10b981;">Random Discovery</h3>
+      <div id="random-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+    </section>
+
+    <section>
+      <div class="flex justify-between items-center mb-6 flex-wrap gap-4">
+        <div class="flex items-center gap-4 flex-wrap">
+          <h3 class="section-title">Latest Added</h3>
+          <div id="latest-sort-toggle"
+            class="flex items-center gap-1 text-[11px] font-semibold tracking-wide uppercase">
+            <button class="sort-btn active" data-field="date" data-dir="desc">Date ↓</button>
+            <button class="sort-btn" data-field="id" data-dir="">Upload ↕</button>
+          </div>
+        </div>
+        <a href="/{{ view_user.username }}/gallery/"
+          class="text-[10px] font-bold text-blue-600 hover:text-blue-800 transition">VIEW FULL DATABASE →</a>
+      </div>
+      <div id="latest-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
+      <div id="latest-sentinel" class="h-8"></div>
+      <div id="latest-loading"
+        class="text-center text-[10px] uppercase tracking-widest font-bold text-gray-500 py-4 hidden">Loading more...
+      </div>
+    </section>
+  </div>
+
+  {% if request.user == view_user and view_user.site_profile.show_perf_panel %}
+  <script src="{% static 'perf.js' %}?v=1.0"></script>
+  {% endif %}
+  <script src="{% static 'airport-coords.js' %}?v=1.0" defer></script>
+  <script src="{% static 'airport-data.js' %}?v=1.0" defer></script>
+  <script src="{% static 'home.js' %}?v=1.6" defer></script>
+
+  <!-- 点击头像打开菜单 -->
+  <script>
+    (function () {
+      const btn = document.getElementById('user-avatar-btn');
+      if (!btn) return;
+
+      const isAuthed = btn.getAttribute('data-authed') === 'true';
+      const menu = document.getElementById('user-menu');
+
+      if (isAuthed) {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (menu) menu.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', () => {
+          if (menu && !menu.classList.contains('hidden')) {
+            menu.classList.add('hidden');
+          }
+        });
+      }
+    })();
+  </script>
+
+  <div style="text-align:center;padding:24px 0 12px;font-size:10px;color:#282828;">
+    <a href="https://beian.miit.gov.cn/" target="_blank" style="color:#282828;text-decoration:none;">a114514</a>
+    <span style="margin:0 4px;">·</span>
+    <a href="https://beian.mps.gov.cn/#/query/webSearch?code=61011302001964" rel="noreferrer" target="_blank"
+      style="color:#282828;text-decoration:none;">陕公网安备6101130200****号</a>
+  </div>
+</body>
+
+</html>
