@@ -25,36 +25,41 @@ def manage_pending_list(request):
 
 @login_required
 def manage_pending_edit(request, pending_id):
-    """
-    Allow the owner OR any staff to edit a pending photo.
-    """
     pending = get_object_or_404(PendingPhoto, id=pending_id)
 
-    # Permission check: Owner or Staff/Superuser
     if pending.user != request.user and not request.user.is_staff:
         raise Http404("You do not have permission to edit this pending photo.")
 
     site = SiteProfile.objects.filter(user=pending.user).first()
+    is_draft = pending.status == "draft"
 
     if request.method == "POST":
-        # Using PendingPhotoEditForm which doesn't require image upload.
-        form = PendingPhotoEditForm(request.POST, instance=pending, site=site)
+        if is_draft:
+            form = PendingPhotoCreateForm(request.POST, request.FILES, instance=pending, site=site)
+        else:
+            form = PendingPhotoEditForm(request.POST, instance=pending, site=site)
         if form.is_valid():
-            form.save()
+            p = form.save(commit=False)
+            if is_draft and request.FILES.get("image"):
+                p.status = "pending"
+            p.save()
             if request.headers.get('x-requested-with') == 'XMLHttpRequest':
                 return JsonResponse({'status': 'ok'})
-            # Redirect to logical source (fallback)
             if request.user.is_staff:
                 return redirect("review_queue")
             return redirect("photos_manage_pending_list")
     else:
-        form = PendingPhotoEditForm(instance=pending, site=site)
+        if is_draft:
+            form = PendingPhotoCreateForm(instance=pending, site=site)
+        else:
+            form = PendingPhotoEditForm(instance=pending, site=site)
 
     airlines = Photo.objects.values_list('airline', flat=True).distinct().order_by('airline')
 
     return render(request, "manage/my_pending_photo_detail_edit.html", {
         "photo": pending,
         "form": form,
+        "is_draft": is_draft,
         "airlines": airlines,
         "models": get_model_choices(),
         "model_submodel_map": get_model_submodel_map(),
@@ -71,8 +76,12 @@ def submit_pending_page(request):
         if form.is_valid():
             pending = form.save(commit=False)
             pending.user = request.user
+            pending.status = "pending" if pending.image else "draft"
             pending.save()
-            messages.success(request, f"Photo {pending.reg} submitted successfully! You can submit another one.")
+            if pending.status == "pending":
+                messages.success(request, f"Photo {pending.reg} submitted successfully! You can submit another one.")
+            else:
+                messages.success(request, f"Draft saved: {pending.reg}. Upload a photo later to submit for review.")
             return redirect("submit_pending")
     else:
         form = PendingPhotoCreateForm(site=site)

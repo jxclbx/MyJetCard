@@ -260,6 +260,7 @@ class GearItem(models.Model):
 class PendingPhoto(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, default=1, related_name="pending_photos")
     STATUS_CHOICES = [
+        ("draft", "Draft"),
         ("pending", "Pending"),
         ("approved", "Approved"),
         ("rejected", "Rejected"),

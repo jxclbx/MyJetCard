@@ -265,7 +265,7 @@
             style="display:none; height:160px; border:1px solid #eee; border-radius:8px; margin-top:8px; object-fit:contain;">
         </div>
 
-        <label>Image</label>{{ form.image }}<div class="errors">{{ form.image.errors }}</div>
+        <label>Image <span style="font-weight:400; color:#888; font-size:11px;">(optional — leave blank to save as draft)</span></label>{{ form.image }}<div class="errors">{{ form.image.errors }}</div>
         <label>Reg</label>{{ form.reg }}<div class="errors">{{ form.reg.errors }}</div>
         <div class="reg-hint" id="reg-db-hint"></div>
         <label>Model</label>{{ form.model }}<div class="errors">{{ form.model.errors }}</div>
@@ -313,7 +313,7 @@
       const regHint = document.getElementById('reg-db-hint');
       const username = "{{ user.username }}";
 
-        if (regInput && regHint) {
+      if (regInput && regHint) {
         let debounceTimer;
         regInput.addEventListener('input', function () {
           clearTimeout(debounceTimer);

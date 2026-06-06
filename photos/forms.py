@@ -180,6 +180,7 @@ class PendingPhotoCreateForm(forms.ModelForm):
             qs = qs.filter(site=site)
         self.fields["camera"].queryset = qs.filter(kind="camera").order_by("id")
         self.fields["lens"].queryset = qs.filter(kind="lens").order_by("id")
+        self.fields["image"].required = False
 
     def clean_reg(self):
         val = self.cleaned_data.get("reg")
@@ -220,13 +221,6 @@ class PendingPhotoCreateForm(forms.ModelForm):
                 if info.get("ic", "").upper() == val:
                     return iata
         return val
-
-    def clean(self):
-        cleaned = super().clean()
-        image = cleaned.get("image")
-        if not image:
-            raise forms.ValidationError("Must upload an image.")
-        return cleaned
 
 
 class PendingPhotoEditForm(forms.ModelForm):

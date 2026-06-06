@@ -40,8 +40,10 @@
               <img class="thumb" src="{{ p.image_sm.url }}" alt="">
               {% elif p.image %}
               <img class="thumb" src="{{ p.image.url }}" alt="">
-              {% else %}
+              {% elif p.src %}
               <img class="thumb" src="{{ p.src }}" alt="">
+              {% else %}
+              <span class="muted" style="font-size:11px;">—</span>
               {% endif %}
             </td>
             <td style="font-weight:600; letter-spacing:0.03em;">{{ p.reg }}</td>
@@ -50,7 +52,11 @@
             <td>{{ p.airport }}</td>
             <td class="muted">{{ p.submitted_at|date:"Y-m-d H:i" }}</td>
             <td>
-              {% if p.status == 'approved' %}
+              {% if p.status == 'draft' %}
+              <span class="badge badge-draft">Draft</span>
+              <div style="margin-top:6px;"><a href="{% url 'photos_manage_pending_edit' p.id %}" class="btn"
+                  style="zoom:0.8;">Edit / Upload Photo</a></div>
+              {% elif p.status == 'approved' %}
               <span class="badge badge-approved">Approved</span>
               <div style="margin-top:6px;">
                 {% if p.approved_photo_id %}

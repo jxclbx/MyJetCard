@@ -198,16 +198,30 @@
         <a class="btn" href="javascript:history.back();">Back</a>
       </div>
 
-      <h2>Edit Pending Photo: ID {{ photo.id }}</h2>
+      <h2>{% if is_draft %}Edit Draft: ID {{ photo.id }}{% else %}Edit Pending Photo: ID {{ photo.id }}{% endif %}</h2>
 
+      {% if is_draft %}
+      <div style="padding:8px 12px; background:#e2e3e5; border-radius:6px; font-size:12px; color:#495057; margin-bottom:12px;">
+        Draft — upload an image below to submit for review.
+      </div>
+      {% else %}
       <div class="row">
         <img src="{{ photo.display_src_sm }}" alt="Preview">
       </div>
+      {% endif %}
 
-      <form method="post">
+      <form method="post" {% if is_draft %}enctype="multipart/form-data"{% endif %}>
         {% csrf_token %}
         <div class="errors">{{ form.non_field_errors }}</div>
 
+        {% if is_draft %}
+        <div style="margin-bottom:8px;">
+          <img id="img-preview" src="" alt="" style="display:none; height:140px; border:1px solid #eee; border-radius:8px; object-fit:contain;">
+        </div>
+        <label>Image <span style="font-weight:400; color:#888;">(optional — uploading will submit for review)</span></label>
+        {{ form.image }}
+        <div style="color:#b00000; font-size:12px;">{{ form.image.errors }}</div>
+        {% endif %}
         <label>Reg</label>{{ form.reg }}
         <label>Model</label>{{ form.model }}
         <label>Sub Model</label>{{ form.sub_model }}
@@ -270,6 +284,25 @@
     </div>
   </div>
 
+  {% if is_draft %}
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const fileInput = document.querySelector('input[name="image"]');
+      const preview = document.getElementById('img-preview');
+      if (fileInput && preview) {
+        fileInput.addEventListener('change', function () {
+          if (this.files && this.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => { preview.src = e.target.result; preview.style.display = 'block'; };
+            reader.readAsDataURL(this.files[0]);
+          } else {
+            preview.src = ''; preview.style.display = 'none';
+          }
+        });
+      }
+    });
+  </script>
+  {% endif %}
   <script src="{% static 'airport-data.js' %}?v=1.0"></script>
   {{ models|json_script:"model-list-data" }}
   {{ model_submodel_map|json_script:"model-submodel-map" }}
