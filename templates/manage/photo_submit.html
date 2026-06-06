@@ -271,11 +271,29 @@
         <label>Model</label>{{ form.model }}<div class="errors">{{ form.model.errors }}</div>
         <label>Sub Model</label>{{ form.sub_model }}<div class="errors">{{ form.sub_model.errors }}</div>
         <label>Airline</label>{{ form.airline }}<div class="errors">{{ form.airline.errors }}</div>
-        <label>Airport</label>{{ form.airport }}<div class="errors">{{ form.airport.errors }}</div>
+        <div style="display:flex; align-items:center; margin-top:12px; margin-bottom:4px;">
+          <label style="display:inline; margin:0;">Airport</label>
+          <div id="airport-suggest" style="display:none; align-items:center; font-size:11px; color:#555;">
+            <span style="color:#ccc; margin:0 8px;">|</span>You may at: <span id="airport-suggest-list" style="margin-left:3px;"></span>
+          </div>
+        </div>
+        {{ form.airport }}<div class="errors">{{ form.airport.errors }}</div>
         <label>Date</label>{{ form.date }}<div class="errors">{{ form.date.errors }}</div>
         <div class="exif-hint" id="exif-date-hint"></div>
-        <label>Camera</label>{{ form.camera }}<div class="errors">{{ form.camera.errors }}</div>
-        <label>Lens</label>{{ form.lens }}<div class="errors">{{ form.lens.errors }}</div>
+        <div style="display:flex; align-items:center; margin-top:12px; margin-bottom:4px;">
+          <label style="display:inline; margin:0;">Camera</label>
+          <div id="exif-camera-hint" style="display:none; align-items:center; font-size:11px; color:#555;">
+            <span style="color:#ccc; margin:0 8px;">|</span><span id="exif-camera-text"></span>
+          </div>
+        </div>
+        {{ form.camera }}<div class="errors">{{ form.camera.errors }}</div>
+        <div style="display:flex; align-items:center; margin-top:12px; margin-bottom:4px;">
+          <label style="display:inline; margin:0;">Lens</label>
+          <div id="exif-lens-hint" style="display:none; align-items:center; font-size:11px; color:#555;">
+            <span style="color:#ccc; margin:0 8px;">|</span><span id="exif-lens-text"></span>
+          </div>
+        </div>
+        {{ form.lens }}<div class="errors">{{ form.lens.errors }}</div>
         <label>Remarks</label>{{ form.remarks }}<div class="errors">{{ form.remarks.errors }}</div>
 
         <label style="margin-bottom:0;">Tags</label>
@@ -307,6 +325,7 @@
   <script src="{% static 'airport-data.js' %}?v=1.0"></script>
   {{ models|json_script:"model-list-data" }}
   {{ model_submodel_map|json_script:"model-submodel-map" }}
+  {{ date_airports|json_script:"date-airports-data" }}
   <script>
     (function () {
       const regInput = document.getElementById('id_reg');
@@ -349,65 +368,55 @@
     })();
   </script>
   <script>
-    // ── Minimal EXIF date parser (no external dependency) ──
-    // Reads DateTimeOriginal / DateTimeDigitized / DateTime from JPEG EXIF
-    function readExifDate(file) {
+    // ── EXIF parser: reads date, camera make/model, lens model ──
+    function readExifData(file) {
       return new Promise((resolve) => {
         if (!file || !file.type.match(/image\/(jpeg|jpg|tiff)/i)) {
-          resolve(null);
-          return;
+          resolve(null); return;
         }
         const reader = new FileReader();
         reader.onload = function (e) {
           try {
             const view = new DataView(e.target.result);
-            // Check JPEG SOI marker
             if (view.getUint16(0) !== 0xFFD8) { resolve(null); return; }
             let offset = 2;
             while (offset < view.byteLength - 1) {
               const marker = view.getUint16(offset);
               offset += 2;
-              if (marker === 0xFFE1) { // APP1 (EXIF)
-                const length = view.getUint16(offset);
-                // Check "Exif\0\0"
+              if (marker === 0xFFE1) {
                 const exifHeader = String.fromCharCode(
                   view.getUint8(offset + 2), view.getUint8(offset + 3),
                   view.getUint8(offset + 4), view.getUint8(offset + 5)
                 );
                 if (exifHeader !== 'Exif') { resolve(null); return; }
-                const tiffStart = offset + 8; // after length(2) + "Exif\0\0"(6)
+                const tiffStart = offset + 8;
                 const bigEndian = view.getUint16(tiffStart) === 0x4D4D;
                 const g16 = (o) => view.getUint16(o, !bigEndian);
                 const g32 = (o) => view.getUint32(o, !bigEndian);
 
                 function readString(off, len) {
                   let s = '';
-                  for (let i = 0; i < len && view.getUint8(off + i) !== 0; i++) {
+                  for (let i = 0; i < len && view.getUint8(off + i) !== 0; i++)
                     s += String.fromCharCode(view.getUint8(off + i));
-                  }
-                  return s;
+                  return s.trim();
                 }
-
                 function findTag(ifdOffset, tagId) {
                   const entries = g16(ifdOffset);
                   for (let i = 0; i < entries; i++) {
-                    const entryOffset = ifdOffset + 2 + i * 12;
-                    if (g16(entryOffset) === tagId) {
-                      const count = g32(entryOffset + 4);
-                      const valueOffset = count > 4 ? tiffStart + g32(entryOffset + 8) : entryOffset + 8;
-                      return readString(valueOffset, count);
+                    const e = ifdOffset + 2 + i * 12;
+                    if (g16(e) === tagId) {
+                      const count = g32(e + 4);
+                      const valOff = count > 4 ? tiffStart + g32(e + 8) : e + 8;
+                      return readString(valOff, count);
                     }
                   }
                   return null;
                 }
-
                 function findExifIFDOffset(ifdOffset) {
                   const entries = g16(ifdOffset);
                   for (let i = 0; i < entries; i++) {
-                    const entryOffset = ifdOffset + 2 + i * 12;
-                    if (g16(entryOffset) === 0x8769) { // ExifIFD pointer
-                      return tiffStart + g32(entryOffset + 8);
-                    }
+                    const e = ifdOffset + 2 + i * 12;
+                    if (g16(e) === 0x8769) return tiffStart + g32(e + 8);
                   }
                   return null;
                 }
@@ -415,41 +424,56 @@
                 const ifd0 = tiffStart + g32(tiffStart + 4);
                 const exifIFD = findExifIFDOffset(ifd0);
 
+                // Date
                 let dateStr = null;
-                if (exifIFD) {
-                  // 0x9003 = DateTimeOriginal, 0x9004 = DateTimeDigitized
-                  dateStr = findTag(exifIFD, 0x9003) || findTag(exifIFD, 0x9004);
-                }
-                if (!dateStr) {
-                  // 0x0132 = DateTime (from IFD0)
-                  dateStr = findTag(ifd0, 0x0132);
+                if (exifIFD) dateStr = findTag(exifIFD, 0x9003) || findTag(exifIFD, 0x9004);
+                if (!dateStr) dateStr = findTag(ifd0, 0x0132);
+                let date = null;
+                if (dateStr) {
+                  const m = dateStr.match(/(\d{4}):(\d{2}):(\d{2})/);
+                  if (m) date = `${m[1]}-${m[2]}-${m[3]}`;
                 }
 
-                if (dateStr) {
-                  // EXIF date format: "YYYY:MM:DD HH:MM:SS" -> "YYYY-MM-DD"
-                  const match = dateStr.match(/(\d{4}):(\d{2}):(\d{2})/);
-                  if (match) {
-                    resolve(`${match[1]}-${match[2]}-${match[3]}`);
-                    return;
-                  }
-                }
-                resolve(null);
+                // Camera: Make (0x010F) + Model (0x0110)
+                const cameraMake = findTag(ifd0, 0x010F) || '';
+                const cameraModel = findTag(ifd0, 0x0110) || '';
+
+                // Lens: LensMake (0xA433) + LensModel (0xA434) from ExifIFD
+                const lensMake = exifIFD ? (findTag(exifIFD, 0xA433) || '') : '';
+                const lensModel = exifIFD ? (findTag(exifIFD, 0xA434) || '') : '';
+
+                resolve({ date, cameraMake, cameraModel, lensMake, lensModel });
                 return;
               } else if ((marker & 0xFF00) === 0xFF00) {
-                const segLen = view.getUint16(offset);
-                offset += segLen;
-              } else {
-                break;
-              }
+                offset += view.getUint16(offset);
+              } else { break; }
             }
             resolve(null);
-          } catch (err) {
-            resolve(null);
-          }
+          } catch (err) { resolve(null); }
         };
-        // Only read the first 128KB for speed (EXIF is always in the header)
         reader.readAsArrayBuffer(file.slice(0, 131072));
       });
+    }
+
+    // Word-token Dice coefficient for fuzzy gear matching
+    function gearSimilarity(a, b) {
+      const tok = s => new Set(s.toLowerCase().replace(/[^a-z0-9]/g, ' ').split(/\s+/).filter(Boolean));
+      const A = tok(a), B = tok(b);
+      if (!A.size || !B.size) return 0;
+      let inter = 0;
+      A.forEach(t => { if (B.has(t)) inter++; });
+      return (2 * inter) / (A.size + B.size);
+    }
+
+    function autoFillGearSelect(selectEl, exifStr) {
+      if (!selectEl || !exifStr) return;
+      let best = { score: 0, value: '' };
+      for (const opt of selectEl.options) {
+        if (!opt.value) continue;
+        const score = gearSimilarity(exifStr, opt.text);
+        if (score > best.score) best = { score, value: opt.value };
+      }
+      if (best.score >= 0.6) selectEl.value = best.value;
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -466,7 +490,10 @@
       const dateInput = document.querySelector('input[name="date"]');
       const exifHint = document.getElementById('exif-date-hint');
 
-      // ── EXIF date extraction helper ──
+      // ── EXIF auto-fill helper ──
+      const cameraSelect = document.querySelector('select[name="camera"]');
+      const lensSelect   = document.querySelector('select[name="lens"]');
+
       async function handleImageFile(file) {
         if (!file) return;
         // Preview
@@ -477,19 +504,58 @@
         };
         reader.readAsDataURL(file);
 
-        // EXIF date
+        const exif = await readExifData(file);
+
+        // Date
         if (dateInput) {
-          const exifDate = await readExifDate(file);
+          const exifDate = exif && exif.date;
           if (exifDate) {
             dateInput.value = exifDate;
+            dateInput.dispatchEvent(new Event('input'));
             if (exifHint) {
-              exifHint.textContent = 'EXIF date read:' + exifDate;
+              exifHint.textContent = 'EXIF date read: ' + exifDate;
               exifHint.className = 'exif-hint success';
             }
           } else {
             if (exifHint) {
               exifHint.textContent = 'EXIF date read failed';
               exifHint.className = 'exif-hint warn';
+            }
+          }
+        }
+
+        // Camera & Lens
+        if (exif) {
+          // Build camera search string: if Make is not already in Model, prepend it
+          const makeLC = exif.cameraMake.toLowerCase();
+          const modelLC = exif.cameraModel.toLowerCase();
+          const cameraStr = modelLC.includes(makeLC) ? exif.cameraModel
+                          : `${exif.cameraMake} ${exif.cameraModel}`.trim();
+          const lensStr = exif.lensModel
+            ? (exif.lensMake && !exif.lensModel.toLowerCase().includes(exif.lensMake.toLowerCase())
+                ? `${exif.lensMake} ${exif.lensModel}` : exif.lensModel)
+            : '';
+          autoFillGearSelect(cameraSelect, cameraStr);
+          autoFillGearSelect(lensSelect, lensStr);
+
+          const exifCameraHint = document.getElementById('exif-camera-hint');
+          const exifCameraText = document.getElementById('exif-camera-text');
+          if (exifCameraHint && exifCameraText) {
+            if (cameraStr) {
+              exifCameraText.textContent = cameraStr;
+              exifCameraHint.style.display = 'flex';
+            } else {
+              exifCameraHint.style.display = 'none';
+            }
+          }
+          const exifLensHint = document.getElementById('exif-lens-hint');
+          const exifLensText = document.getElementById('exif-lens-text');
+          if (exifLensHint && exifLensText) {
+            if (lensStr) {
+              exifLensText.textContent = lensStr;
+              exifLensHint.style.display = 'flex';
+            } else {
+              exifLensHint.style.display = 'none';
             }
           }
         }
@@ -725,6 +791,39 @@
       input.addEventListener('focus', (e) => updateList(e.target.value));
       input.addEventListener('blur', () => { list.style.display = 'none'; });
     });
+
+      // ── Airport suggestions based on date ──
+      const dateAirportsData = JSON.parse(document.getElementById('date-airports-data').textContent || '{}');
+      const suggestDiv = document.getElementById('airport-suggest');
+      const suggestList = document.getElementById('airport-suggest-list');
+      const airportFieldInput = document.querySelector('input[name="airport"]');
+
+      function updateAirportSuggestions(dateStr) {
+        if (!suggestDiv || !suggestList) return;
+        const airports = dateAirportsData[dateStr] || [];
+        if (airports.length > 0) {
+          suggestList.innerHTML = airports.map(ap => {
+            const name = (typeof AIRPORT_DATA !== 'undefined' && AIRPORT_DATA[ap]) ? AIRPORT_DATA[ap].n : ap;
+            return `<a href="javascript:void(0)" style="color:#1a7a3c;text-decoration:underline;font-weight:600;margin-right:6px;font-size:11px;" data-airport="${ap}">${name}</a>`;
+          }).join('');
+          suggestDiv.style.display = 'flex';
+          suggestList.querySelectorAll('a[data-airport]').forEach(el => {
+            el.addEventListener('click', () => {
+              if (airportFieldInput) {
+                airportFieldInput.value = el.dataset.airport;
+              }
+            });
+          });
+        } else {
+          suggestDiv.style.display = 'none';
+        }
+      }
+
+      if (dateInput) {
+        dateInput.addEventListener('input', e => updateAirportSuggestions(e.target.value));
+        dateInput.addEventListener('change', e => updateAirportSuggestions(e.target.value));
+        if (dateInput.value) updateAirportSuggestions(dateInput.value);
+      }
 
     });
   </script>

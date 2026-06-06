@@ -86,11 +86,21 @@ def submit_pending_page(request):
     else:
         form = PendingPhotoCreateForm(site=site)
     airlines = Photo.objects.values_list('airline', flat=True).distinct().order_by('airline')
+
+    from collections import defaultdict
+    date_airports: defaultdict[str, set[str]] = defaultdict(set)
+    for row in Photo.objects.filter(user=request.user).exclude(airport="").values('date', 'airport').distinct():
+        date_airports[str(row['date'])].add(row['airport'])
+    for row in PendingPhoto.objects.filter(user=request.user).exclude(airport="").values('date', 'airport').distinct():
+        date_airports[str(row['date'])].add(row['airport'])
+    date_airports_json = {k: sorted(v) for k, v in date_airports.items()}
+
     return render(request, "manage/photo_submit.html", {
         "form": form,
         "airlines": airlines,
         "models": get_model_choices(),
         "model_submodel_map": get_model_submodel_map(),
+        "date_airports": date_airports_json,
     })
 
 
