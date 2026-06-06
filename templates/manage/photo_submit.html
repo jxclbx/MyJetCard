@@ -313,7 +313,7 @@
       const regHint = document.getElementById('reg-db-hint');
       const username = "{{ user.username }}";
 
-      if (regInput && regHint) {
+        if (regInput && regHint) {
         let debounceTimer;
         regInput.addEventListener('input', function () {
           clearTimeout(debounceTimer);
@@ -328,7 +328,15 @@
               .then(res => res.json())
               .then(data => {
                 if (data && typeof data.count === 'number') {
-                  regHint.innerHTML = `This registration has been uploaded <strong>${data.count}</strong> times.`;
+                  const approved = data.count;
+                  const pending = data.pending_count || 0;
+                  const draft = data.draft_count || 0;
+                  let text = approved > 0
+                    ? `Approved <strong>${approved}</strong> time${approved !== 1 ? 's' : ''}`
+                    : 'Not in library yet';
+                  if (pending > 0) text += ` · <strong>${pending}</strong> in pending`;
+                  if (draft > 0) text += ` · <strong>${draft}</strong> in draft`;
+                  regHint.innerHTML = text + '.';
                   regHint.classList.add('active');
                 } else {
                   regHint.classList.remove('active');

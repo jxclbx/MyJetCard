@@ -96,3 +96,12 @@
 - 审核流程重构：审核通过/拒绝/删除照片时一律不删除物理文件，`PendingPhoto` 记录永久保留，文件清理统一由 `clean_orphan_media --delete` 处理
 - `Photo` 删除时自动将关联的 `PendingPhoto.approved_photo` 置空，而非级联删除
 - 新增 Staff 专用"替换图片"功能：直接上传新图覆盖，缩略图自动重新生成，旧文件交由孤立文件清理流程处理
+
+---
+
+## 2026年5月 — 上传与队列改进
+
+**2026-05-14**
+- 在 `templates/manage/photo_submit.html` 中新增保存草稿提示与注册号实时检查，填写注册号时会显示已通过数量、队列中 `pending` 数量和 `draft` 数量。
+- 画廊筛选结果标题中增加 `IN PENDING` / `IN DRAFT` 显示（`static/gallery.js` 中 `FILTERED RESULTS` 标题逻辑）。
+

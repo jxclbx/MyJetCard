@@ -48,11 +48,16 @@ async function initGallery() {
         totalCountFromServer = payload.count || 0;
         const totalRegsFromServer = payload.regs_count || 0;
 
-        // 3. 动态更新标题（支持：n PHOTOS, m REGS）
+        // 3. 动态更新标题（支持：n PHOTOS, n IN PENDING, n IN DRAFT, m REGS）
         const filterCount = Object.keys(filters).length;
         if (filterCount > 0) {
-            document.getElementById('gallery-title').innerText = 
-                `FILTERED RESULTS (${totalCountFromServer} PHOTOS, ${totalRegsFromServer} REGS)`;
+            const pendingCount = payload.pending_count || 0;
+            const draftCount = payload.draft_count || 0;
+            const parts = [`${totalCountFromServer} PHOTOS`];
+            if (pendingCount > 0) parts.push(`${pendingCount} IN PENDING`);
+            if (draftCount > 0) parts.push(`${draftCount} IN DRAFT`);
+            parts.push(`${totalRegsFromServer} REGS`);
+            document.getElementById('gallery-title').innerText = `FILTERED RESULTS (${parts.join(', ')})`;
         } else {
             document.getElementById('gallery-title').innerText = "ALL PHOTOS";
         }
