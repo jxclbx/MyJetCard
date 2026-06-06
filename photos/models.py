@@ -190,6 +190,7 @@ class SiteProfile(models.Model):
     banner = models.ImageField(upload_to="site/%Y/%m/", blank=True, null=True)
     pinned_ids = models.JSONField(default=list, blank=True)
     show_perf_panel = models.BooleanField(default=False)
+    gallery_page_size = models.PositiveSmallIntegerField(default=24)
 
     def _compress_image(self, field, max_size, quality):
         """Resize and compress an ImageField to JPEG."""

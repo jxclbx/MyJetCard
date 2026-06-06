@@ -12,7 +12,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script>window.SITE_USER = "{{ view_user.username }}";</script>
+    <script>
+        window.SITE_USER = "{{ view_user.username|escapejs }}";
+        window.VIEWER_GALLERY_PAGE_SIZE = {{ viewer_gallery_page_size|default:24 }};
+    </script>
     <style>
         /* 1. 统一背景色与基础文字 */
         * {
@@ -149,7 +152,7 @@
     {% if request.user == view_user and view_user.site_profile.show_perf_panel %}
     <script src="{% static 'perf.js' %}?v=1.0"></script>
     {% endif %}
-    <script src="{% static 'gallery.js' %}?v=1.4"></script>
+    <script src="{% static 'gallery.js' %}?v=1.5"></script>
     <div style="text-align:center;padding:24px 0 12px;font-size:10px;color:#282828;">
         <a href="https://beian.miit.gov.cn/" target="_blank" style="color:#282828;text-decoration:none;">a114514</a>
         <span style="margin:0 4px;">·</span>

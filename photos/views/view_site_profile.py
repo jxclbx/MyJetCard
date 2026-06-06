@@ -1,57 +1,66 @@
-import os
 from django.contrib.auth.decorators import login_required
-from django.http import Http404, HttpResponse
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from ..models import SiteProfile, GearItem
-from ..forms import SiteProfileForm, GearItemForm
+from ..forms import GearItemForm, SiteProfileForm
+from ..models import GearItem, SiteProfile
 
+PAGE_SIZE_MIN = 4
+PAGE_SIZE_MAX = 100
+PAGE_SIZE_DEFAULT = 24
+
+
+def clean_page_size(value):
+    try:
+        size = int(value)
+    except (TypeError, ValueError):
+        return PAGE_SIZE_DEFAULT
+    size = max(PAGE_SIZE_MIN, min(PAGE_SIZE_MAX, size))
+    return size - (size % 4)
+
+
+def upload_edit_disabled_response(request):
+    return HttpResponse(
+        "<script>alert('网站目前为非交互，上传编辑功能暂不开放。');"
+        f"window.location.href='/{request.user.username}/';</script>"
+    )
 
 
 @login_required
 def manage_site(request):
-    if not request.user.is_superuser:
-        return HttpResponse(f"<script>alert('网站目前为非交互，上传编辑功能暂不开放。');window.location.href='/{request.user.username}/';</script>")
-    """
-    一个页面：
-    - 编辑 SiteProfile（单例：只允许一个）
-    - 显示 GearItem 列表
-    - 新增 GearItem（在同页）
-    """
     site = SiteProfile.objects.filter(user=request.user).first()
     if not site:
         site = SiteProfile.objects.create(user=request.user)
 
-    old_avatar = site.avatar
-    old_banner = site.banner
-
     if request.method == "POST":
         action = request.POST.get("action", "save_site")
 
-        # A) 保存站点信息
+        if action == "save_page_sizes":
+            site.gallery_page_size = clean_page_size(request.POST.get("gallery_page_size"))
+            site.save(update_fields=["gallery_page_size"])
+            return redirect("photos_manage_site")
+
+        if not request.user.is_superuser:
+            return upload_edit_disabled_response(request)
+
         if action == "save_site":
             form = SiteProfileForm(request.POST, request.FILES, instance=site)
-            gear_form = GearItemForm()  # 只是为了页面渲染
+            gear_form = GearItemForm()
             if form.is_valid():
-                updated = form.save()
-
+                form.save()
                 return redirect("photos_manage_site")
-
-        # B) 新增 gear
         elif action == "add_gear":
-            form = SiteProfileForm(instance=site)  # 只是为了页面渲染
+            form = SiteProfileForm(instance=site)
             gear_form = GearItemForm(request.POST)
             if gear_form.is_valid():
                 obj = gear_form.save(commit=False)
                 obj.site = site
                 obj.save()
                 return redirect("photos_manage_site")
-
         else:
             form = SiteProfileForm(instance=site)
             gear_form = GearItemForm()
-
     else:
         form = SiteProfileForm(instance=site)
         gear_form = GearItemForm()
@@ -69,7 +78,7 @@ def manage_site(request):
 @login_required
 def manage_gear_edit(request, gear_id):
     if not request.user.is_superuser:
-        return HttpResponse(f"<script>alert('网站目前为非交互，上传编辑功能暂不开放。');window.location.href='/{request.user.username}/';</script>")
+        return upload_edit_disabled_response(request)
     gear = get_object_or_404(GearItem, id=gear_id, site__user=request.user)
 
     if request.method == "POST":
@@ -87,7 +96,7 @@ def manage_gear_edit(request, gear_id):
 @require_POST
 def manage_gear_delete(request, gear_id):
     if not request.user.is_superuser:
-        return HttpResponse(f"<script>alert('网站目前为非交互，上传编辑功能暂不开放。');window.location.href='/{request.user.username}/';</script>")
+        return upload_edit_disabled_response(request)
     gear = get_object_or_404(GearItem, id=gear_id, site__user=request.user)
     gear.delete()
     return redirect("photos_manage_site")

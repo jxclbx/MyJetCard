@@ -1,5 +1,11 @@
 // 配置参数
-const ITEMS_PER_PAGE = 24; // 4x6 布局
+function viewerPageSize(value, fallback = 24) {
+    const n = Number.parseInt(value, 10);
+    if (!Number.isFinite(n) || n < 4) return fallback;
+    return Math.min(100, Math.max(4, n - (n % 4)));
+}
+
+const ITEMS_PER_PAGE = viewerPageSize(window.VIEWER_GALLERY_PAGE_SIZE); // 4x6 布局
 let allData = [];          // 原始 JSON 数据
 let filteredData = [];     // 过滤后的数据
 

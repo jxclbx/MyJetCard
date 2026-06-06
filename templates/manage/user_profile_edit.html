@@ -146,6 +146,40 @@
       border-top: 1px solid #eee;
     }
 
+    .preferences-panel {
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid #eee;
+    }
+
+    .range-row {
+      max-width: 640px;
+      margin-top: 16px;
+    }
+
+    .range-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      max-width: 520px;
+    }
+
+    .range-value {
+      min-width: 44px;
+      text-align: right;
+      font-size: 13px;
+      font-weight: 700;
+      color: #222;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      max-width: 520px;
+      margin-top: 8px;
+      accent-color: #282828;
+    }
+
     .export-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -180,6 +214,7 @@
         <a class="btn" href="/{{ user.username }}/">Home</a>
       </div>
 
+      {% if user.is_superuser %}
       <h2>Manage Site Profile</h2>
 
       {% if site.avatar %}
@@ -289,6 +324,31 @@
         <!-- 用 form="site-form" 让按钮在表单外也能提交 -->
         <button class="btn" type="submit" form="site-form">Save</button>
       </div>
+      {% endif %}
+
+      <div class="preferences-panel">
+        <h3>Browsing Preferences</h3>
+        <div class="hint">This setting applies when you are logged in and browsing any user's Gallery page. Guests use the default value.</div>
+
+        <form method="post" id="page-size-form">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="save_page_sizes">
+
+          <div class="range-row">
+            <div class="range-head">
+              <label for="gallery-page-size" style="margin:0;">Gallery Page Photos</label>
+              <span class="range-value"><span id="gallery-page-size-value">{{ site.gallery_page_size }}</span></span>
+            </div>
+            <input id="gallery-page-size" name="gallery_page_size" type="range" min="4" max="100" step="4"
+              value="{{ site.gallery_page_size }}">
+            <div class="hint">Controls how many photos appear on each Gallery page.</div>
+          </div>
+
+          <div class="export-actions">
+            <button class="btn" type="submit">Save Preferences</button>
+          </div>
+        </form>
+      </div>
 
       <div class="export-panel">
         <h3>Data Export</h3>
@@ -362,6 +422,22 @@
     document.addEventListener("DOMContentLoaded", () => {
       setupImagePreview("avatar", "avatar-preview", "avatar-preview-container");
       setupImagePreview("banner", "banner-preview", "banner-preview-container");
+
+      function bindRangeValue(inputId, valueId) {
+        const input = document.getElementById(inputId);
+        const value = document.getElementById(valueId);
+        if (!input || !value) return;
+        const sync = () => {
+          const n = parseInt(input.value, 10) || 24;
+          const rounded = n - (n % 4);
+          input.value = String(rounded);
+          value.textContent = String(rounded);
+        };
+        input.addEventListener('input', sync);
+        sync();
+      }
+
+      bindRangeValue('gallery-page-size', 'gallery-page-size-value');
 
       const format = document.getElementById('export-format');
       const table = document.getElementById('export-table');

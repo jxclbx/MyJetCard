@@ -164,8 +164,12 @@ def _site_profile_rows(request):
             "banner_url": _image_url(request, site.banner),
             "pinned_ids": json.dumps(site.pinned_ids, ensure_ascii=False),
             "show_perf_panel": site.show_perf_panel,
+            "gallery_page_size": site.gallery_page_size,
         }]
-    return ["username", "location", "hobbies", "avatar_url", "banner_url", "pinned_ids", "show_perf_panel"], rows
+    return [
+        "username", "location", "hobbies", "avatar_url", "banner_url", "pinned_ids",
+        "show_perf_panel", "gallery_page_size",
+    ], rows
 
 
 TABLE_BUILDERS = {
@@ -206,7 +210,7 @@ def _schema_payload():
             "site_profile": {
                 "columns": [
                     "username", "location", "hobbies", "avatar_url", "banner_url",
-                    "pinned_ids", "show_perf_panel",
+                    "pinned_ids", "show_perf_panel", "gallery_page_size",
                 ],
             },
         },

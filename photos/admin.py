@@ -38,6 +38,7 @@ class SiteProfileAdmin(admin.ModelAdmin):
         ("baseinfo", {"fields": ("location", "hobbies")}),
         ("images", {"fields": ("avatar", "banner")}),
         ("Editor's Picks (JSON input example '[1, 2, 3]')", {"fields": ("pinned_ids",)}),
+        ("Browsing Preferences", {"fields": ("gallery_page_size",)}),
     )
 
     def has_add_permission(self, request):
