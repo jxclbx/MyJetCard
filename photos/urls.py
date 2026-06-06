@@ -17,6 +17,7 @@ from .views.view_site_profile import manage_site, manage_gear_edit, manage_gear_
 from .api.api_photos import api_home, api_photos, api_photo_detail
 from .api.api_stats import api_stats_overview, api_stats_year, api_stats_regs
 from .api.api_site import api_site
+from .api.api_export import export_my_data
 from .api import api_review
 
 urlpatterns = [
@@ -39,6 +40,7 @@ urlpatterns = [
     path("manage/gear/<int:gear_id>/delete/",           manage_gear_delete,       name="photos_manage_gear_delete"),
 
     # APIs - photos
+    path("api/me/export/",                           export_my_data,          name="api_my_export"),
     path("api/<str:username>/home",                     api_home),
     path("api/<str:username>/photos",                   api_photos),
     path("api/<str:username>/photos/<int:photo_id>/",   api_photo_detail),

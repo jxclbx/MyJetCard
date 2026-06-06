@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.core.exceptions import ObjectDoesNotExist
 
-from .models import AircraftSubModel, Photo, SiteProfile, GearItem
+from .models import AircraftSubModel, DataExportLog, Photo, SiteProfile, GearItem
 
 
 @admin.register(Photo)
@@ -61,6 +61,15 @@ class AircraftSubModelAdmin(admin.ModelAdmin):
     search_fields = ("model", "sub_model")
     ordering = ("model", "sub_model")
     readonly_fields = ("usage_count", "updated_at")
+
+
+@admin.register(DataExportLog)
+class DataExportLogAdmin(admin.ModelAdmin):
+    list_display = ("user", "format", "table", "status", "row_count", "file_size", "created_at")
+    list_filter = ("status", "format", "created_at")
+    search_fields = ("user__username",)
+    ordering = ("-created_at",)
+    readonly_fields = ("user", "format", "table", "status", "row_count", "file_size", "created_at")
 
 from .models import PendingPhoto
 

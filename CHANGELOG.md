@@ -130,6 +130,8 @@
 
 **2026-06-06**
 
+- 新增用户数据导出实验功能：`/api/me/export/` 支持同步下载 ZIP 或单表 CSV，不包含原图文件，仅导出图片 URL；导出入口移动到 `/manage/site/` 页面底部，并提供格式、表名和日期范围选择。
+- 新增 `DataExportLog` 记录导出状态、行数、文件大小和创建时间，普通用户每天最多导出 3 次，staff/superuser 不受限制。
 - 上传表单新增机场智能推荐：页面加载时一次性从 `Photo` 和 `PendingPhoto` 查出当前用户所有 `(date, airport)` 组合，拍摄日期变化时在 Airport 标签右侧实时显示同日去过的机场（含全名），点击可直接填入
 - 上传表单 EXIF 解析扩展：读取相机 Make/Model（`0x010F`/`0x0110`）和镜头 LensModel/LensMake（`0xA434`/`0xA433`），基于词元 Dice 系数对用户 Gear 列表做模糊匹配（阈值 60%），达标则自动选中对应下拉项
 - Camera / Lens 标签右侧同步展示 EXIF 原始读取字符串，供填写时参考

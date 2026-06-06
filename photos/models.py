@@ -354,3 +354,27 @@ class PendingPhoto(models.Model):
             except ValueError:
                 pass
         return self.display_src
+
+
+class DataExportLog(models.Model):
+    STATUS_CHOICES = [
+        ("started", "Started"),
+        ("completed", "Completed"),
+        ("failed", "Failed"),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="data_export_logs")
+    format = models.CharField(max_length=16, default="zip")
+    table = models.CharField(max_length=32, blank=True, default="")
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default="started")
+    row_count = models.PositiveIntegerField(default=0)
+    file_size = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(default=timezone.now, db_index=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["user", "-created_at"], name="idx_export_user_time"),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} {self.format} {self.status} {self.created_at:%Y-%m-%d %H:%M}"

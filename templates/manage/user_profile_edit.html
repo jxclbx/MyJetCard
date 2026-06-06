@@ -139,6 +139,37 @@
       align-items: center;
       justify-content: flex-start;
     }
+
+    .export-panel {
+      margin-top: 24px;
+      padding-top: 18px;
+      border-top: 1px solid #eee;
+    }
+
+    .export-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px 16px;
+      max-width: 720px;
+    }
+
+    .export-grid label {
+      margin-top: 0;
+    }
+
+    .export-actions {
+      margin-top: 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 640px) {
+      .export-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 
@@ -259,6 +290,46 @@
         <button class="btn" type="submit" form="site-form">Save</button>
       </div>
 
+      <div class="export-panel">
+        <h3>Data Export</h3>
+        <div class="hint">Export starts immediately, cannot be cancelled, and is limited to 3 times per day.</div>
+
+        <div class="export-grid">
+          <div>
+            <label for="export-format">Format</label>
+            <select id="export-format">
+              <option value="zip" selected>ZIP - all tables</option>
+              <option value="csv">CSV - one table</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="export-table">Table</label>
+            <select id="export-table" disabled>
+              <option value="photos" selected>Photos</option>
+              <option value="pending_photos">Pending Photos</option>
+              <option value="gear">Gear</option>
+              <option value="site_profile">Site Profile</option>
+            </select>
+          </div>
+
+          <div>
+            <label for="export-from">From Date</label>
+            <input id="export-from" type="date">
+          </div>
+
+          <div>
+            <label for="export-to">To Date</label>
+            <input id="export-to" type="date">
+          </div>
+        </div>
+
+        <div class="export-actions">
+          <button class="btn" type="button" id="export-download-btn">Download Data</button>
+          <span class="hint" id="export-status"></span>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -291,6 +362,48 @@
     document.addEventListener("DOMContentLoaded", () => {
       setupImagePreview("avatar", "avatar-preview", "avatar-preview-container");
       setupImagePreview("banner", "banner-preview", "banner-preview-container");
+
+      const format = document.getElementById('export-format');
+      const table = document.getElementById('export-table');
+      const from = document.getElementById('export-from');
+      const to = document.getElementById('export-to');
+      const btn = document.getElementById('export-download-btn');
+      const status = document.getElementById('export-status');
+
+      function syncExportControls() {
+        if (!format || !table) return;
+        table.disabled = format.value !== 'csv';
+      }
+
+      if (format) {
+        format.addEventListener('change', syncExportControls);
+        syncExportControls();
+      }
+
+      if (btn) {
+        btn.addEventListener('click', () => {
+          const ok = window.confirm('Export starts immediately and cannot be cancelled. You can export your data up to 3 times per day. Continue?');
+          if (!ok) return;
+
+          const params = new URLSearchParams();
+          params.set('format', format.value);
+          if (format.value === 'csv') params.set('table', table.value);
+          if (from.value) params.set('from', from.value);
+          if (to.value) params.set('to', to.value);
+
+          btn.disabled = true;
+          btn.textContent = 'Preparing...';
+          if (status) status.textContent = 'Preparing export file. Please do not click repeatedly.';
+
+          window.location.href = `/api/me/export/?${params.toString()}`;
+
+          window.setTimeout(() => {
+            btn.disabled = false;
+            btn.textContent = 'Download Data';
+            if (status) status.textContent = '';
+          }, 4000);
+        });
+      }
     });
   </script>
   <div style="text-align:center;padding:24px 0 12px;font-size:10px;color:#282828;">
