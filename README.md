@@ -57,8 +57,6 @@ https://myjetcard.top/jxclbx/
 - 审核时可修改提交信息再通过
 - 通过后的条目通过 `OneToOneField` 与生成的 `Photo` 关联；若该 `Photo` 后续被删除，字段置空而非级联删除
 
-**直接发布** (`/manage/photos/add-direct/`) — 仅限 staff/superuser
-- 跳过审核队列，直接创建正式 `Photo` 记录
 
 ---
 

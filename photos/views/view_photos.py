@@ -1,4 +1,3 @@
-from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Q, Value
@@ -7,9 +6,9 @@ from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from ..models import Photo, SiteProfile
+from ..models import Photo
 from ..services import get_model_choices, get_model_submodel_map
-from ..forms import PhotoCreateForm, PhotoEditForm
+from ..forms import PhotoEditForm
 
 
 @login_required
@@ -37,30 +36,6 @@ def manage_photo_list(request):
         "photos": page_obj.object_list,
         "page_obj": page_obj,
         "query": q,
-    })
-
-
-@login_required
-def manage_photo_add(request):
-    if not request.user.is_superuser:
-        return HttpResponse(f"<script>alert('网站目前为非交互，上传编辑功能暂不开放。');window.location.href='/{request.user.username}/';</script>")
-    site = SiteProfile.objects.filter(user=request.user).first()
-    if request.method == "POST":
-        form = PhotoCreateForm(request.POST, request.FILES, site=site)
-        if form.is_valid():
-            photo = form.save(commit=False)
-            photo.user = request.user
-            photo.save()
-            messages.success(request, f"Photo {photo.reg} added directly to database! You can add another one.")
-            return redirect("photos_manage_add")
-    else:
-        form = PhotoCreateForm(site=site)
-    airlines = Photo.objects.values_list('airline', flat=True).distinct().order_by('airline')
-    return render(request, "staff/staff_photo_submit.html", {
-        "form": form,
-        "airlines": airlines,
-        "models": get_model_choices(),
-        "model_submodel_map": get_model_submodel_map(),
     })
 
 

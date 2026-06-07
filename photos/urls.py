@@ -2,7 +2,6 @@ from django.urls import path
 
 from .views.view_photos import (
     manage_photo_list,
-    manage_photo_add,
     manage_photo_edit,
     manage_photo_delete,
     manage_photo_replace_image,
@@ -23,7 +22,6 @@ from .api import api_review
 urlpatterns = [
     # Photo CRUD
     path("manage/photos/",                              manage_photo_list,        name="photos_manage_list"),
-    path("manage/photos/add-direct/",                  manage_photo_add,         name="photos_manage_add"),
     path("manage/photos/<int:photo_id>/edit/",          manage_photo_edit,        name="photos_manage_edit"),
     path("manage/photos/<int:photo_id>/delete/",        manage_photo_delete,      name="photos_manage_delete"),
     path("manage/photos/<int:photo_id>/replace/",       manage_photo_replace_image, name="photos_manage_replace_image"),
