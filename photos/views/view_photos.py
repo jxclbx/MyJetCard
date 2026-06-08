@@ -6,7 +6,7 @@ from django.http import Http404, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from ..models import Photo
+from ..models import Photo, SiteProfile
 from ..services import get_model_choices, get_model_submodel_map
 from ..forms import PhotoEditForm
 
